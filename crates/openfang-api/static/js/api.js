@@ -22,6 +22,9 @@ var OpenFangToast = (function() {
   function toast(message, type, duration) {
     type = type || 'info';
     duration = duration || 4000;
+    if (typeof message === 'string' && typeof OpenFangI18n !== 'undefined') {
+      message = OpenFangI18n.translateText(message);
+    }
     var id = ++_toastId;
     var el = document.createElement('div');
     el.className = 'toast toast-' + type;
@@ -61,6 +64,10 @@ var OpenFangToast = (function() {
 
   // Styled confirmation modal — replaces native confirm()
   function confirm(title, message, onConfirm) {
+    if (typeof OpenFangI18n !== 'undefined') {
+      title = OpenFangI18n.translateText(title);
+      message = OpenFangI18n.translateText(message);
+    }
     var overlay = document.createElement('div');
     overlay.className = 'confirm-overlay';
 
@@ -82,12 +89,12 @@ var OpenFangToast = (function() {
 
     var cancelBtn = document.createElement('button');
     cancelBtn.className = 'btn btn-ghost confirm-cancel';
-    cancelBtn.textContent = 'Cancel';
+    cancelBtn.textContent = t('prompt_cancel');
     actions.appendChild(cancelBtn);
 
     var okBtn = document.createElement('button');
     okBtn.className = 'btn btn-danger confirm-ok';
-    okBtn.textContent = 'Confirm';
+    okBtn.textContent = t('prompt_confirm');
     actions.appendChild(okBtn);
 
     modal.appendChild(actions);
@@ -110,6 +117,7 @@ var OpenFangToast = (function() {
     success: success,
     error: error,
     warn: warn,
+    warning: warn,
     info: info,
     confirm: confirm
   };
@@ -117,15 +125,15 @@ var OpenFangToast = (function() {
 
 // ── Friendly Error Messages ──
 function friendlyError(status, serverMsg) {
-  if (status === 0 || !status) return 'Cannot reach daemon — is openfang running?';
-  if (status === 401) return 'Not authorized — check your API key';
-  if (status === 403) return 'Permission denied';
-  if (status === 404) return serverMsg || 'Resource not found';
-  if (status === 429) return 'Rate limited — slow down and try again';
-  if (status === 413) return 'Request too large';
-  if (status === 500) return 'Server error — check daemon logs';
-  if (status === 502 || status === 503) return 'Daemon unavailable — is it running?';
-  return serverMsg || 'Unexpected error (' + status + ')';
+  if (status === 0 || !status) return t('error_cannot_reach');
+  if (status === 401) return t('error_not_authorized');
+  if (status === 403) return t('error_permission_denied');
+  if (status === 404) return serverMsg || t('error_not_found');
+  if (status === 429) return t('error_rate_limited');
+  if (status === 413) return t('error_request_too_large');
+  if (status === 500) return t('error_server');
+  if (status === 502 || status === 503) return t('error_unavailable');
+  return serverMsg || t('error_unexpected', { status: status });
 }
 
 // ── API Client ──
@@ -180,7 +188,7 @@ var OpenFangAPI = (function() {
     }).catch(function(e) {
       if (e.name === 'TypeError' && e.message.includes('Failed to fetch')) {
         setConnectionState('disconnected');
-        throw new Error('Cannot connect to daemon — is openfang running?');
+        throw new Error(t('error_cannot_reach'));
       }
       throw e;
     });
@@ -220,7 +228,7 @@ var OpenFangAPI = (function() {
         _reconnectAttempts = 0;
         setConnectionState('connected');
         if (_reconnectAttempt > 0) {
-          OpenFangToast.success('Reconnected');
+          OpenFangToast.success(t('toast_reconnected'));
           _reconnectAttempt = 0;
         }
         if (_wsCallbacks.onOpen) _wsCallbacks.onOpen();
@@ -241,7 +249,7 @@ var OpenFangAPI = (function() {
           _reconnectAttempt = _reconnectAttempts;
           setConnectionState('reconnecting');
           if (_reconnectAttempts === 1) {
-            OpenFangToast.warn('Connection lost, reconnecting...');
+            OpenFangToast.warn(t('toast_reconnecting'));
           }
           var delay = Math.min(1000 * Math.pow(2, _reconnectAttempts - 1), 10000);
           _reconnectTimer = setTimeout(function() { _doConnect(_wsAgentId); }, delay);
@@ -249,7 +257,7 @@ var OpenFangAPI = (function() {
         }
         if (_wsAgentId && _reconnectAttempts >= MAX_RECONNECT) {
           setConnectionState('disconnected');
-          OpenFangToast.error('Connection lost — switched to HTTP mode', 0);
+          OpenFangToast.error(t('toast_http_fallback'), 0);
         }
         if (_wsCallbacks.onClose) _wsCallbacks.onClose();
       };

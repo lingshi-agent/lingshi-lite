@@ -241,7 +241,7 @@ function chatPage() {
           if (el) el.focus();
         });
       }).catch(function(e) {
-        OpenFangToast.error('Failed to load models: ' + e.message);
+        OpenFangToast.error(t('settings_save_failed', { error: e.message }));
       });
     },
 
@@ -253,11 +253,11 @@ function chatPage() {
       OpenFangAPI.put('/api/agents/' + this.currentAgent.id + '/model', { model: model.id }).then(function() {
         self.currentAgent.model_name = model.id;
         self.currentAgent.model_provider = model.provider;
-        OpenFangToast.success('Switched to ' + (model.display_name || model.id));
+        OpenFangToast.success(OpenFangI18n.translateText('Switched to ' + (model.display_name || model.id)));
         self.showModelSwitcher = false;
         self.modelSwitching = false;
       }).catch(function(e) {
-        OpenFangToast.error('Switch failed: ' + e.message);
+        OpenFangToast.error(OpenFangI18n.translateText('Switch failed: ' + e.message));
         self.modelSwitching = false;
       });
     },
@@ -323,26 +323,26 @@ function chatPage() {
           if (self.currentAgent) {
             OpenFangAPI.post('/api/agents/' + self.currentAgent.id + '/session/reset', {}).then(function() {
               self.messages = [];
-              OpenFangToast.success('Session reset');
-            }).catch(function(e) { OpenFangToast.error('Reset failed: ' + e.message); });
+              OpenFangToast.success(OpenFangI18n.translateText('Session reset'));
+            }).catch(function(e) { OpenFangToast.error(OpenFangI18n.translateText('Reset failed: ' + e.message)); });
           }
           break;
         case '/compact':
           if (self.currentAgent) {
-            self.messages.push({ id: ++msgId, role: 'system', text: 'Compacting session...', meta: '', tools: [] });
+            self.messages.push({ id: ++msgId, role: 'system', text: OpenFangI18n.translateText('Compacting session...'), meta: '', tools: [] });
             OpenFangAPI.post('/api/agents/' + self.currentAgent.id + '/session/compact', {}).then(function(res) {
-              self.messages.push({ id: ++msgId, role: 'system', text: res.message || 'Compaction complete', meta: '', tools: [] });
+              self.messages.push({ id: ++msgId, role: 'system', text: res.message || OpenFangI18n.translateText('Compaction complete'), meta: '', tools: [] });
               self.scrollToBottom();
-            }).catch(function(e) { OpenFangToast.error('Compaction failed: ' + e.message); });
+            }).catch(function(e) { OpenFangToast.error(OpenFangI18n.translateText('Compaction failed: ' + e.message)); });
           }
           break;
         case '/stop':
           if (self.currentAgent) {
             OpenFangAPI.post('/api/agents/' + self.currentAgent.id + '/stop', {}).then(function(res) {
-              self.messages.push({ id: ++msgId, role: 'system', text: res.message || 'Run cancelled', meta: '', tools: [] });
+              self.messages.push({ id: ++msgId, role: 'system', text: res.message || OpenFangI18n.translateText('Run cancelled'), meta: '', tools: [] });
               self.sending = false;
               self.scrollToBottom();
-            }).catch(function(e) { OpenFangToast.error('Stop failed: ' + e.message); });
+            }).catch(function(e) { OpenFangToast.error(OpenFangI18n.translateText('Stop failed: ' + e.message)); });
           }
           break;
         case '/usage':
@@ -377,7 +377,7 @@ function chatPage() {
           if (self.currentAgent && OpenFangAPI.isWsConnected()) {
             OpenFangAPI.wsSend({ type: 'command', command: 'context', args: '' });
           } else {
-            self.messages.push({ id: ++msgId, role: 'system', text: 'Not connected. Connect to an agent first.', meta: '', tools: [] });
+            self.messages.push({ id: ++msgId, role: 'system', text: OpenFangI18n.translateText('Not connected. Connect to an agent first.'), meta: '', tools: [] });
             self.scrollToBottom();
           }
           break;
@@ -385,7 +385,7 @@ function chatPage() {
           if (self.currentAgent && OpenFangAPI.isWsConnected()) {
             OpenFangAPI.wsSend({ type: 'command', command: 'verbose', args: cmdArgs });
           } else {
-            self.messages.push({ id: ++msgId, role: 'system', text: 'Not connected. Connect to an agent first.', meta: '', tools: [] });
+            self.messages.push({ id: ++msgId, role: 'system', text: OpenFangI18n.translateText('Not connected. Connect to an agent first.'), meta: '', tools: [] });
             self.scrollToBottom();
           }
           break;
@@ -393,7 +393,7 @@ function chatPage() {
           if (self.currentAgent && OpenFangAPI.isWsConnected()) {
             OpenFangAPI.wsSend({ type: 'command', command: 'queue', args: '' });
           } else {
-            self.messages.push({ id: ++msgId, role: 'system', text: 'Not connected.', meta: '', tools: [] });
+            self.messages.push({ id: ++msgId, role: 'system', text: OpenFangI18n.translateText('Not connected.'), meta: '', tools: [] });
             self.scrollToBottom();
           }
           break;
@@ -410,13 +410,13 @@ function chatPage() {
                 self.currentAgent.model_name = cmdArgs;
                 self.messages.push({ id: ++msgId, role: 'system', text: 'Model switched to: `' + cmdArgs + '`', meta: '', tools: [] });
                 self.scrollToBottom();
-              }).catch(function(e) { OpenFangToast.error('Model switch failed: ' + e.message); });
+              }).catch(function(e) { OpenFangToast.error(OpenFangI18n.translateText('Model switch failed: ' + e.message)); });
             } else {
               self.messages.push({ id: ++msgId, role: 'system', text: '**Current Model**\n- Provider: `' + (self.currentAgent.model_provider || '?') + '`\n- Model: `' + (self.currentAgent.model_name || '?') + '`', meta: '', tools: [] });
               self.scrollToBottom();
             }
           } else {
-            self.messages.push({ id: ++msgId, role: 'system', text: 'No agent selected.', meta: '', tools: [] });
+            self.messages.push({ id: ++msgId, role: 'system', text: OpenFangI18n.translateText('No agent selected.'), meta: '', tools: [] });
             self.scrollToBottom();
           }
           break;
@@ -535,7 +535,7 @@ function chatPage() {
     // Multi-session: create a new session
     async createSession() {
       if (!this.currentAgent) return;
-      var label = prompt('Session name (optional):');
+      var label = prompt(OpenFangI18n.getLanguage() === 'zh-CN' ? '会话名称（可选）：' : 'Session name (optional):');
       if (label === null) return; // cancelled
       try {
         await OpenFangAPI.post('/api/agents/' + this.currentAgent.id + '/sessions', {
@@ -545,9 +545,9 @@ function chatPage() {
         await this.loadSession(this.currentAgent.id);
         this.messages = [];
         this.scrollToBottom();
-        if (typeof OpenFangToast !== 'undefined') OpenFangToast.success('New session created');
+        if (typeof OpenFangToast !== 'undefined') OpenFangToast.success(t('agents_new_session_created'));
       } catch(e) {
-        if (typeof OpenFangToast !== 'undefined') OpenFangToast.error('Failed to create session');
+        if (typeof OpenFangToast !== 'undefined') OpenFangToast.error(t('agents_session_create_failed'));
       }
     },
 
@@ -563,7 +563,7 @@ function chatPage() {
         this._wsAgent = null;
         this.connectWs(this.currentAgent.id);
       } catch(e) {
-        if (typeof OpenFangToast !== 'undefined') OpenFangToast.error('Failed to switch session');
+        if (typeof OpenFangToast !== 'undefined') OpenFangToast.error(t('agents_session_switch_failed'));
       }
     },
 
@@ -595,13 +595,13 @@ function chatPage() {
         // Legacy thinking event (backward compat)
         case 'thinking':
           if (!this.messages.length || !this.messages[this.messages.length - 1].thinking) {
-            var thinkLabel = data.level ? 'Thinking (' + data.level + ')...' : 'Processing...';
+            var thinkLabel = OpenFangI18n.translateText(data.level ? 'Thinking (' + data.level + ')...' : 'Processing...');
             this.messages.push({ id: ++msgId, role: 'agent', text: thinkLabel, meta: '', thinking: true, streaming: true, tools: [] });
             this.scrollToBottom();
             this._resetTypingTimeout();
           } else if (data.level) {
             var lastThink = this.messages[this.messages.length - 1];
-            if (lastThink && lastThink.thinking) lastThink.text = 'Thinking (' + data.level + ')...';
+            if (lastThink && lastThink.thinking) lastThink.text = OpenFangI18n.translateText('Thinking (' + data.level + ')...');
           }
           break;
 
@@ -609,14 +609,14 @@ function chatPage() {
         case 'typing':
           if (data.state === 'start') {
             if (!this.messages.length || !this.messages[this.messages.length - 1].thinking) {
-              this.messages.push({ id: ++msgId, role: 'agent', text: 'Processing...', meta: '', thinking: true, streaming: true, tools: [] });
+              this.messages.push({ id: ++msgId, role: 'agent', text: OpenFangI18n.translateText('Processing...'), meta: '', thinking: true, streaming: true, tools: [] });
               this.scrollToBottom();
             }
             this._resetTypingTimeout();
           } else if (data.state === 'tool') {
             var typingMsg = this.messages.length ? this.messages[this.messages.length - 1] : null;
             if (typingMsg && (typingMsg.thinking || typingMsg.streaming)) {
-              typingMsg.text = 'Using ' + (data.tool || 'tool') + '...';
+              typingMsg.text = OpenFangI18n.translateText('Using ' + (data.tool || 'tool') + '...');
             }
             this._resetTypingTimeout();
           } else if (data.state === 'stop') {
@@ -983,7 +983,7 @@ function chatPage() {
       if (!this.currentAgent) return;
       var self = this;
       OpenFangAPI.post('/api/agents/' + this.currentAgent.id + '/stop', {}).then(function(res) {
-        self.messages.push({ id: ++msgId, role: 'system', text: res.message || 'Run cancelled', meta: '', tools: [], ts: Date.now() });
+        self.messages.push({ id: ++msgId, role: 'system', text: res.message || (OpenFangI18n.getLanguage() === 'zh-CN' ? '运行已取消' : 'Run cancelled'), meta: '', tools: [], ts: Date.now() });
         self.sending = false;
         self.scrollToBottom();
         self.$nextTick(function() { self._processQueue(); });

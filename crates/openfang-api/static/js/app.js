@@ -36,9 +36,9 @@ function copyCode(btn) {
   var code = btn.nextElementSibling;
   if (code) {
     navigator.clipboard.writeText(code.textContent).then(function() {
-      btn.textContent = 'Copied!';
+      btn.textContent = t('common_copied');
       btn.classList.add('copied');
-      setTimeout(function() { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 1500);
+      setTimeout(function() { btn.textContent = t('common_copy'); btn.classList.remove('copied'); }, 1500);
     });
   }
 }
@@ -90,6 +90,10 @@ document.addEventListener('alpine:init', function() {
   // Restore saved API key on load
   var savedKey = localStorage.getItem('openfang-api-key');
   if (savedKey) OpenFangAPI.setAuthToken(savedKey);
+  var bootstrapLanguage = OpenFangI18n.normalizeLocale(
+    localStorage.getItem('openfang-language') || OpenFangI18n.detectBrowserLocale()
+  );
+  OpenFangI18n.init(bootstrapLanguage);
 
   Alpine.store('app', {
     agents: [],
@@ -104,10 +108,41 @@ document.addEventListener('alpine:init', function() {
     focusMode: localStorage.getItem('openfang-focus') === 'true',
     showOnboarding: false,
     showAuthPrompt: false,
+    language: bootstrapLanguage,
 
     toggleFocusMode() {
       this.focusMode = !this.focusMode;
       localStorage.setItem('openfang-focus', this.focusMode);
+    },
+
+    async initializeLanguage() {
+      var configLanguage = '';
+      try {
+        var config = await OpenFangAPI.get('/api/config');
+        configLanguage = config && config.language ? config.language : '';
+      } catch(e) {
+        configLanguage = '';
+      }
+      var resolved = OpenFangI18n.normalizeLocale(configLanguage || this.language || OpenFangI18n.detectBrowserLocale());
+      localStorage.setItem('openfang-language', resolved);
+      this.language = OpenFangI18n.setLanguage(resolved);
+    },
+
+    async setLanguagePreference(nextLanguage, persist) {
+      var normalized = OpenFangI18n.normalizeLocale(nextLanguage);
+      OpenFangI18n.setLanguage(normalized);
+      this.language = normalized;
+      localStorage.setItem('openfang-language', normalized);
+      if (!persist) return normalized;
+      try {
+        await OpenFangAPI.post('/api/config/set', { path: 'language', value: normalized });
+        OpenFangToast.success(t('toast_language_saved', {
+          language: normalized === 'zh-CN' ? t('lang_zh_cn') : t('lang_en')
+        }));
+      } catch(e) {
+        OpenFangToast.error(t('settings_save_failed', { error: e.message }));
+      }
+      return normalized;
     },
 
     async refreshAgents() {
@@ -206,6 +241,7 @@ function app() {
     agentCount: 0,
 
     get agents() { return Alpine.store('app').agents; },
+    get currentLanguage() { return Alpine.store('app').language; },
 
     init() {
       var self = this;
@@ -240,6 +276,7 @@ function app() {
           window.location.hash = hash;
         }
         if (validPages.indexOf(hash) >= 0) self.page = hash;
+        setTimeout(function() { OpenFangI18n.applyTranslations(); }, 0);
       }
       window.addEventListener('hashchange', handleHash);
       handleHash();
@@ -273,6 +310,7 @@ function app() {
       });
 
       // Initial data load
+      Alpine.store('app').initializeLanguage();
       this.pollStatus();
       Alpine.store('app').checkOnboarding();
       Alpine.store('app').checkAuth();
@@ -283,6 +321,7 @@ function app() {
       this.page = p;
       window.location.hash = p;
       this.mobileMenuOpen = false;
+      setTimeout(function() { OpenFangI18n.applyTranslations(); }, 0);
     },
 
     setTheme(mode) {
@@ -304,6 +343,14 @@ function app() {
     toggleSidebar() {
       this.sidebarCollapsed = !this.sidebarCollapsed;
       localStorage.setItem('openfang-sidebar', this.sidebarCollapsed ? 'collapsed' : 'expanded');
+    },
+
+    async setLanguage(lang) {
+      await Alpine.store('app').setLanguagePreference(lang, true);
+    },
+
+    languageLabel(lang) {
+      return lang === 'zh-CN' ? t('lang_zh_cn') : t('lang_en');
     },
 
     async pollStatus() {

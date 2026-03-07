@@ -56,7 +56,7 @@ function schedulerPage() {
       try {
         await this.loadJobs();
       } catch(e) {
-        this.loadError = e.message || 'Could not load scheduler data.';
+        this.loadError = e.message || t('scheduler_load_failed');
       }
       this.loading = false;
     },
@@ -95,7 +95,7 @@ function schedulerPage() {
         this.triggers = Array.isArray(data) ? data : [];
       } catch(e) {
         this.triggers = [];
-        this.trigLoadError = e.message || 'Could not load triggers.';
+        this.trigLoadError = e.message || t('scheduler_triggers_load_failed');
       }
       this.trigLoading = false;
     },
@@ -144,11 +144,11 @@ function schedulerPage() {
 
     async createJob() {
       if (!this.newJob.name.trim()) {
-        OpenFangToast.warn('Please enter a job name');
+        OpenFangToast.warn(t('scheduler_name_required'));
         return;
       }
       if (!this.newJob.cron.trim()) {
-        OpenFangToast.warn('Please enter a cron expression');
+        OpenFangToast.warn(t('scheduler_cron_required'));
         return;
       }
       this.creating = true;
@@ -158,17 +158,17 @@ function schedulerPage() {
           agent_id: this.newJob.agent_id,
           name: this.newJob.name,
           schedule: { kind: 'cron', expr: this.newJob.cron },
-          action: { kind: 'agent_turn', message: this.newJob.message || 'Scheduled task: ' + this.newJob.name },
+          action: { kind: 'agent_turn', message: this.newJob.message || t('scheduler_default_message', { name: this.newJob.name }) },
           delivery: { kind: 'last_channel' },
           enabled: this.newJob.enabled
         };
         await OpenFangAPI.post('/api/cron/jobs', body);
         this.showCreateForm = false;
         this.newJob = { name: '', cron: '', agent_id: '', message: '', enabled: true };
-        OpenFangToast.success('Schedule "' + jobName + '" created');
+        OpenFangToast.success(t('scheduler_created', { name: jobName }));
         await this.loadJobs();
       } catch(e) {
-        OpenFangToast.error('Failed to create schedule: ' + (e.message || e));
+        OpenFangToast.error(t('scheduler_create_failed', { error: e.message || e }));
       }
       this.creating = false;
     },
@@ -178,22 +178,22 @@ function schedulerPage() {
         var newState = !job.enabled;
         await OpenFangAPI.put('/api/cron/jobs/' + job.id + '/enable', { enabled: newState });
         job.enabled = newState;
-        OpenFangToast.success('Schedule ' + (newState ? 'enabled' : 'paused'));
+        OpenFangToast.success(newState ? t('scheduler_enabled') : t('scheduler_paused'));
       } catch(e) {
-        OpenFangToast.error('Failed to toggle schedule: ' + (e.message || e));
+        OpenFangToast.error(t('scheduler_toggle_failed', { error: e.message || e }));
       }
     },
 
     deleteJob(job) {
       var self = this;
       var jobName = job.name || job.id;
-      OpenFangToast.confirm('Delete Schedule', 'Delete "' + jobName + '"? This cannot be undone.', async function() {
+      OpenFangToast.confirm(t('scheduler_delete_title'), t('scheduler_delete_message', { name: jobName }), async function() {
         try {
           await OpenFangAPI.del('/api/cron/jobs/' + job.id);
           self.jobs = self.jobs.filter(function(j) { return j.id !== job.id; });
-          OpenFangToast.success('Schedule "' + jobName + '" deleted');
+          OpenFangToast.success(t('scheduler_deleted', { name: jobName }));
         } catch(e) {
-          OpenFangToast.error('Failed to delete schedule: ' + (e.message || e));
+          OpenFangToast.error(t('scheduler_delete_failed', { error: e.message || e }));
         }
       });
     },
@@ -203,13 +203,13 @@ function schedulerPage() {
       try {
         var result = await OpenFangAPI.post('/api/schedules/' + job.id + '/run', {});
         if (result.status === 'completed') {
-          OpenFangToast.success('Schedule "' + (job.name || 'job') + '" executed successfully');
+          OpenFangToast.success(t('scheduler_run_ok', { name: job.name || 'job' }));
           job.last_run = new Date().toISOString();
         } else {
-          OpenFangToast.error('Schedule run failed: ' + (result.error || 'Unknown error'));
+          OpenFangToast.error(t('scheduler_run_failed', { error: result.error || t('common_unknown') }));
         }
       } catch(e) {
-        OpenFangToast.error('Run Now is not yet available for cron jobs');
+        OpenFangToast.error(t('scheduler_run_unavailable'));
       }
       this.runningJobId = '';
     },
@@ -241,21 +241,21 @@ function schedulerPage() {
         var newState = !trigger.enabled;
         await OpenFangAPI.put('/api/triggers/' + trigger.id, { enabled: newState });
         trigger.enabled = newState;
-        OpenFangToast.success('Trigger ' + (newState ? 'enabled' : 'disabled'));
+        OpenFangToast.success(newState ? t('scheduler_trigger_enabled') : t('scheduler_trigger_disabled'));
       } catch(e) {
-        OpenFangToast.error('Failed to toggle trigger: ' + (e.message || e));
+        OpenFangToast.error(t('scheduler_trigger_toggle_failed', { error: e.message || e }));
       }
     },
 
     deleteTrigger(trigger) {
       var self = this;
-      OpenFangToast.confirm('Delete Trigger', 'Delete this trigger? This cannot be undone.', async function() {
+      OpenFangToast.confirm(t('scheduler_delete_trigger_title'), t('scheduler_delete_trigger_message'), async function() {
         try {
           await OpenFangAPI.del('/api/triggers/' + trigger.id);
           self.triggers = self.triggers.filter(function(t) { return t.id !== trigger.id; });
-          OpenFangToast.success('Trigger deleted');
+          OpenFangToast.success(t('scheduler_trigger_deleted'));
         } catch(e) {
-          OpenFangToast.error('Failed to delete trigger: ' + (e.message || e));
+          OpenFangToast.error(t('scheduler_trigger_delete_failed', { error: e.message || e }));
         }
       });
     },

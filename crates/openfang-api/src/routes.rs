@@ -8768,6 +8768,17 @@ pub async fn config_schema(
 
     Json(serde_json::json!({
         "sections": {
+            "general": {
+                "fields": {
+                    "language": {
+                        "type": "select",
+                        "options": ["en", "zh-CN"],
+                        "path": "language",
+                        "label": "Language",
+                        "description": "Dashboard, CLI, and user-facing message language."
+                    }
+                }
+            },
             "api": {
                 "fields": {
                     "api_listen": "string",
