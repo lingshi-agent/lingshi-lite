@@ -1108,7 +1108,7 @@ pub async fn send_message_stream(
 }
 
 // ---------------------------------------------------------------------------
-// Channel status endpoints — data-driven registry for all 40 adapters
+// Channel status endpoints — data-driven registry for all 41 adapters
 // ---------------------------------------------------------------------------
 
 /// Field type for the channel configuration form.
@@ -1155,7 +1155,8 @@ struct ChannelMeta {
     setup_time: &'static str,
     /// One-line quick setup hint shown in the simple form view.
     quick_setup: &'static str,
-    /// Setup type: "form" (default), "qr" (QR code scan + form fallback).
+    /// Setup type: "form" (default), "qr" (QR code scan + form fallback),
+    /// "short_code" (server-side short-code binding flow).
     setup_type: &'static str,
     fields: &'static [ChannelField],
     setup_steps: &'static [&'static str],
@@ -1163,7 +1164,7 @@ struct ChannelMeta {
 }
 
 const CHANNEL_REGISTRY: &[ChannelMeta] = &[
-    // ── Messaging (12) ──────────────────────────────────────────────
+    // ── Messaging (13) ──────────────────────────────────────────────
     ChannelMeta {
         name: "telegram", display_name: "Telegram", icon: "TG",
         description: "Telegram Bot API — long-polling adapter",
@@ -1226,6 +1227,21 @@ const CHANNEL_REGISTRY: &[ChannelMeta] = &[
         ],
         setup_steps: &["Open WhatsApp on your phone", "Go to Linked Devices", "Tap Link a Device and scan the QR code"],
         config_template: "[channels.whatsapp]\naccess_token_env = \"WHATSAPP_ACCESS_TOKEN\"\nphone_number_id = \"\"",
+    },
+    ChannelMeta {
+        name: "wechat", display_name: "微信", icon: "WX",
+        description: "企业微信客服短码绑定",
+        category: "messaging", difficulty: "Easy", setup_time: "~1 min",
+        quick_setup: "生成短码后，在微信客服会话发送短码完成绑定",
+        setup_type: "short_code",
+        fields: &[
+            ChannelField { key: "server_base_url", label: "Server Base URL", field_type: FieldType::Text, env_var: None, required: true, placeholder: "http://8.148.182.238:8080", advanced: false },
+            ChannelField { key: "device_id", label: "Device ID", field_type: FieldType::Text, env_var: None, required: false, placeholder: "(auto-generated if empty)", advanced: false },
+            ChannelField { key: "status_poll_interval_secs", label: "Status Poll Interval (sec)", field_type: FieldType::Number, env_var: None, required: false, placeholder: "3", advanced: true },
+            ChannelField { key: "default_agent", label: "Default Agent", field_type: FieldType::Text, env_var: None, required: false, placeholder: "assistant", advanced: true },
+        ],
+        setup_steps: &["点击生成短码", "在微信客服会话发送短码", "等待绑定状态更新为已绑定"],
+        config_template: "[channels.wechat]\nserver_base_url = \"http://8.148.182.238:8080\"\ndevice_id = \"\"",
     },
     ChannelMeta {
         name: "signal", display_name: "Signal", icon: "SG",
@@ -1785,6 +1801,7 @@ fn is_channel_configured(config: &openfang_types::config::ChannelsConfig, name: 
         "discord" => config.discord.is_some(),
         "slack" => config.slack.is_some(),
         "whatsapp" => config.whatsapp.is_some(),
+        "wechat" => config.wechat.is_some(),
         "signal" => config.signal.is_some(),
         "matrix" => config.matrix.is_some(),
         "email" => config.email.is_some(),
@@ -1896,6 +1913,7 @@ fn channel_config_values(
         "discord" => config.discord.as_ref().and_then(|c| serde_json::to_value(c).ok()),
         "slack" => config.slack.as_ref().and_then(|c| serde_json::to_value(c).ok()),
         "whatsapp" => config.whatsapp.as_ref().and_then(|c| serde_json::to_value(c).ok()),
+        "wechat" => config.wechat.as_ref().and_then(|c| serde_json::to_value(c).ok()),
         "signal" => config.signal.as_ref().and_then(|c| serde_json::to_value(c).ok()),
         "matrix" => config.matrix.as_ref().and_then(|c| serde_json::to_value(c).ok()),
         "email" => config.email.as_ref().and_then(|c| serde_json::to_value(c).ok()),
@@ -1936,7 +1954,7 @@ fn channel_config_values(
     }
 }
 
-/// GET /api/channels — List all 40 channel adapters with status and field metadata.
+/// GET /api/channels — List all 41 channel adapters with status and field metadata.
 pub async fn list_channels(State(state): State<Arc<AppState>>) -> impl IntoResponse {
     // Read the live channels config (updated on every hot-reload) instead of the
     // stale boot-time kernel.config, so newly configured channels show correctly.
@@ -2323,6 +2341,285 @@ pub async fn reload_channels(State(state): State<Arc<AppState>>) -> impl IntoRes
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(serde_json::json!({
                 "status": "error",
+                "error": e,
+            })),
+        ),
+    }
+}
+
+// ---------------------------------------------------------------------------
+// WeChat short-code binding flow
+// ---------------------------------------------------------------------------
+
+fn normalize_wechat_server_base_url(raw: &str) -> Result<String, String> {
+    let trimmed = raw.trim();
+    if trimmed.is_empty() {
+        return Err("server_base_url is required".to_string());
+    }
+    let url = reqwest::Url::parse(trimmed).map_err(|e| format!("Invalid server_base_url: {e}"))?;
+    if !matches!(url.scheme(), "http" | "https") {
+        return Err("server_base_url must use http or https".to_string());
+    }
+    Ok(trimmed.trim_end_matches('/').to_string())
+}
+
+fn wechat_error_detail(body: &serde_json::Value) -> Option<String> {
+    body.get("detail")
+        .and_then(serde_json::Value::as_str)
+        .map(|s| s.to_string())
+        .or_else(|| {
+            body.get("error")
+                .and_then(serde_json::Value::as_str)
+                .map(|s| s.to_string())
+        })
+}
+
+async fn wechat_proxy_post_json(
+    base_url: &str,
+    path: &str,
+    body: serde_json::Value,
+) -> Result<serde_json::Value, String> {
+    let client = reqwest::Client::new();
+    let url = format!("{}/{}", base_url.trim_end_matches('/'), path.trim_start_matches('/'));
+    let resp = client
+        .post(&url)
+        .json(&body)
+        .send()
+        .await
+        .map_err(|e| format!("Failed to reach wechat server: {e}"))?;
+
+    let status = resp.status();
+    let json: serde_json::Value = resp
+        .json()
+        .await
+        .map_err(|e| format!("Invalid wechat server response: {e}"))?;
+    if !status.is_success() {
+        let detail = wechat_error_detail(&json).unwrap_or_else(|| "request_failed".to_string());
+        return Err(format!("WeChat server error ({status}): {detail}"));
+    }
+    Ok(json)
+}
+
+async fn wechat_proxy_get_json(
+    base_url: &str,
+    path: &str,
+    query: &[(&str, String)],
+) -> Result<serde_json::Value, String> {
+    let client = reqwest::Client::new();
+    let url = format!("{}/{}", base_url.trim_end_matches('/'), path.trim_start_matches('/'));
+    let resp = client
+        .get(&url)
+        .query(query)
+        .send()
+        .await
+        .map_err(|e| format!("Failed to reach wechat server: {e}"))?;
+
+    let status = resp.status();
+    let json: serde_json::Value = resp
+        .json()
+        .await
+        .map_err(|e| format!("Invalid wechat server response: {e}"))?;
+    if !status.is_success() {
+        let detail = wechat_error_detail(&json).unwrap_or_else(|| "request_failed".to_string());
+        return Err(format!("WeChat server error ({status}): {detail}"));
+    }
+    Ok(json)
+}
+
+fn format_wechat_status(
+    status: serde_json::Value,
+    server_base_url: &str,
+) -> serde_json::Value {
+    serde_json::json!({
+        "available": true,
+        "server_base_url": server_base_url,
+        "device_id": status.get("device_id").and_then(serde_json::Value::as_str).unwrap_or_default(),
+        "is_bound": status.get("is_bound").and_then(serde_json::Value::as_bool).unwrap_or(false),
+        "short_code": status.get("short_code").and_then(serde_json::Value::as_str),
+        "expires_at": status.get("expires_at"),
+        "expires_in_seconds": status.get("expires_in_seconds"),
+        "qr_image_url": status.get("qr_image_url").and_then(serde_json::Value::as_str),
+        "online": status.get("online").and_then(serde_json::Value::as_bool).unwrap_or(false),
+        "last_seen_at": status.get("last_seen_at"),
+        "binding": status.get("binding"),
+        "connect_token": status.get("connect_token"),
+    })
+}
+
+/// POST /api/channels/wechat/shortcode/start — Register and get a short code for binding.
+pub async fn wechat_shortcode_start(State(state): State<Arc<AppState>>) -> impl IntoResponse {
+    let wechat_cfg = state
+        .channels_config
+        .read()
+        .await
+        .wechat
+        .clone()
+        .unwrap_or_default();
+
+    let server_base_url = match normalize_wechat_server_base_url(&wechat_cfg.server_base_url) {
+        Ok(v) => v,
+        Err(e) => {
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(serde_json::json!({ "error": e })),
+            )
+        }
+    };
+    let mut device_id = wechat_cfg.device_id.trim().to_string();
+
+    // Auto-generate and persist device_id on first use.
+    if device_id.is_empty() {
+        device_id = uuid::Uuid::new_v4().to_string();
+        let home = openfang_kernel::config::openfang_home();
+        let config_path = home.join("config.toml");
+        let mut fields: HashMap<String, (String, FieldType)> = HashMap::new();
+        fields.insert(
+            "server_base_url".to_string(),
+            (server_base_url.clone(), FieldType::Text),
+        );
+        fields.insert("device_id".to_string(), (device_id.clone(), FieldType::Text));
+        fields.insert(
+            "status_poll_interval_secs".to_string(),
+            (
+                wechat_cfg.status_poll_interval_secs.max(1).to_string(),
+                FieldType::Number,
+            ),
+        );
+        if let Some(default_agent) = wechat_cfg.default_agent.clone() {
+            if !default_agent.trim().is_empty() {
+                fields.insert(
+                    "default_agent".to_string(),
+                    (default_agent.trim().to_string(), FieldType::Text),
+                );
+            }
+        }
+        if let Err(e) = upsert_channel_config(&config_path, "wechat", &fields) {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(serde_json::json!({"error": format!("Failed to save wechat config: {e}")})),
+            );
+        }
+        if let Err(e) = crate::channel_bridge::reload_channels_from_disk(&state).await {
+            tracing::warn!(error = %e, "Hot-reload failed after persisting wechat device_id");
+        }
+    }
+
+    match wechat_proxy_post_json(
+        &server_base_url,
+        "/api/device/register",
+        serde_json::json!({ "device_id": device_id }),
+    )
+    .await
+    {
+        Ok(status) => (StatusCode::OK, Json(format_wechat_status(status, &server_base_url))),
+        Err(e) => (
+            StatusCode::BAD_GATEWAY,
+            Json(serde_json::json!({
+                "available": false,
+                "error": e,
+            })),
+        ),
+    }
+}
+
+/// GET /api/channels/wechat/shortcode/status — Poll short-code binding status.
+pub async fn wechat_shortcode_status(
+    State(state): State<Arc<AppState>>,
+    Query(params): Query<HashMap<String, String>>,
+) -> impl IntoResponse {
+    let wechat_cfg = state
+        .channels_config
+        .read()
+        .await
+        .wechat
+        .clone()
+        .unwrap_or_default();
+    let server_base_url = match normalize_wechat_server_base_url(&wechat_cfg.server_base_url) {
+        Ok(v) => v,
+        Err(e) => {
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(serde_json::json!({ "error": e })),
+            )
+        }
+    };
+
+    let device_id = params
+        .get("device_id")
+        .map(|v| v.trim().to_string())
+        .filter(|v| !v.is_empty())
+        .or_else(|| {
+            let configured = wechat_cfg.device_id.trim().to_string();
+            if configured.is_empty() {
+                None
+            } else {
+                Some(configured)
+            }
+        });
+    let Some(device_id) = device_id else {
+        return (
+            StatusCode::BAD_REQUEST,
+            Json(serde_json::json!({ "error": "device_id is required" })),
+        );
+    };
+
+    match wechat_proxy_get_json(
+        &server_base_url,
+        "/api/device/status",
+        &[("device_id", device_id)],
+    )
+    .await
+    {
+        Ok(status) => (StatusCode::OK, Json(format_wechat_status(status, &server_base_url))),
+        Err(e) => (
+            StatusCode::BAD_GATEWAY,
+            Json(serde_json::json!({
+                "available": false,
+                "error": e,
+            })),
+        ),
+    }
+}
+
+/// POST /api/channels/wechat/unbind — Unbind current wechat device.
+pub async fn wechat_unbind(State(state): State<Arc<AppState>>) -> impl IntoResponse {
+    let wechat_cfg = state
+        .channels_config
+        .read()
+        .await
+        .wechat
+        .clone()
+        .unwrap_or_default();
+    let server_base_url = match normalize_wechat_server_base_url(&wechat_cfg.server_base_url) {
+        Ok(v) => v,
+        Err(e) => {
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(serde_json::json!({ "error": e })),
+            )
+        }
+    };
+
+    let device_id = wechat_cfg.device_id.trim().to_string();
+    if device_id.is_empty() {
+        return (
+            StatusCode::BAD_REQUEST,
+            Json(serde_json::json!({ "error": "wechat channel device_id is empty" })),
+        );
+    }
+
+    match wechat_proxy_post_json(
+        &server_base_url,
+        "/api/device/unbind",
+        serde_json::json!({ "device_id": device_id }),
+    )
+    .await
+    {
+        Ok(status) => (StatusCode::OK, Json(format_wechat_status(status, &server_base_url))),
+        Err(e) => (
+            StatusCode::BAD_GATEWAY,
+            Json(serde_json::json!({
+                "available": false,
                 "error": e,
             })),
         ),
@@ -8768,6 +9065,17 @@ pub async fn config_schema(
 
     Json(serde_json::json!({
         "sections": {
+            "general": {
+                "fields": {
+                    "language": {
+                        "type": "select",
+                        "options": ["en", "zh-CN"],
+                        "path": "language",
+                        "label": "Language",
+                        "description": "Dashboard, CLI, and user-facing message language."
+                    }
+                }
+            },
             "api": {
                 "fields": {
                     "api_listen": "string",

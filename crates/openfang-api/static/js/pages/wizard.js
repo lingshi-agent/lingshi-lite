@@ -130,6 +130,34 @@ function wizardPage() {
         system_prompt: 'You are a meeting summarizer. When given a meeting transcript or notes, produce a structured summary with: key decisions, action items (with owners), discussion highlights, and follow-up questions.'
       }
     ],
+    localizeTemplates() {
+      var zh = {
+        assistant: ['通用助手', '适合日常问答、建议和通用协作的多面手代理。', '你是一名友好、可靠的助手。请提供清晰、准确、简洁的回答；必要时先澄清问题。'],
+        coder: ['代码助手', '专注编程任务，适合写代码、审查代码和调试问题。', '你是一名资深程序员。帮助用户编写清晰高效的代码，解释推理过程，并遵循所用语言的最佳实践。'],
+        researcher: ['研究员', '擅长拆解复杂问题、综合信息并给出带来源的总结。', '你是一名研究分析师。请把复杂主题拆解为清晰说明，输出结构化分析和关键结论，并在可用时标注来源。'],
+        writer: ['写作助手', '帮助起草、润色和改进各类文本内容。', '你是一名专业写作者和编辑。帮助用户产出成熟内容，并根据受众调整语气和风格，给出建设性修改建议。'],
+        'data-analyst': ['数据分析师', '帮助分析数据集、编写查询，并解释统计结果。', '你是一名数据分析专家。帮助用户理解数据、编写 SQL/Python 查询并解释结果，以清晰且可执行的方式呈现发现。'],
+        devops: ['DevOps 工程师', '适合 CI/CD、基础设施、Docker 和部署排障。', '你是一名 DevOps 工程师。帮助处理 CI/CD、Docker、Kubernetes、基础设施即代码和部署问题，优先考虑可靠性和安全性。'],
+        support: ['客服支持', '专业、共情，适合处理客户咨询和问题解决。', '你是一名专业客服代表。保持共情、耐心和面向解决方案，先确认用户关切，再提出处理办法，必要时及时升级。'],
+        tutor: ['导师', '循序渐进地解释概念，并适配学习者水平。', '你是一名耐心且鼓励式的导师。请从基础开始逐步解释概念，使用类比和示例，确认理解后再继续。'],
+        'api-designer': ['API 设计师', '专注 RESTful API 设计、OpenAPI 规范和集成架构。', '你是一名 API 设计专家。帮助用户设计清晰一致的 RESTful API，覆盖命名、请求响应结构、错误处理和版本策略。'],
+        'meeting-notes': ['会议纪要', '把会议记录整理为结构化纪要、行动项和关键决策。', '你是一名会议总结助手。收到会议记录后，请输出结构化摘要，包括关键决策、行动项、讨论亮点和后续问题。']
+      };
+      var useZh = OpenFangI18n.getLanguage() === 'zh-CN';
+      this.templates.forEach(function(template) {
+        template._base = template._base || { name: template.name, description: template.description, system_prompt: template.system_prompt };
+        var translated = zh[template.id];
+        if (useZh && translated) {
+          template.name = translated[0];
+          template.description = translated[1];
+          template.system_prompt = translated[2];
+        } else {
+          template.name = template._base.name;
+          template.description = template._base.description;
+          template.system_prompt = template._base.system_prompt;
+        }
+      });
+    },
     selectedTemplate: 0,
     agentName: 'my-assistant',
     creatingAgent: false,
@@ -242,10 +270,15 @@ function wizardPage() {
     async loadData() {
       this.loading = true;
       this.error = '';
+      this.localizeTemplates();
+      if (!this._i18nBound) {
+        this._i18nBound = true;
+        OpenFangI18n.onChange(this.localizeTemplates.bind(this));
+      }
       try {
         await this.loadProviders();
       } catch(e) {
-        this.error = e.message || 'Could not load setup data.';
+        this.error = e.message || t('wizard_load_failed');
       }
       this.loading = false;
     },
@@ -369,7 +402,7 @@ function wizardPage() {
       if (!provider) return;
       var key = this.apiKeyInput.trim();
       if (!key) {
-        OpenFangToast.error('Please enter an API key');
+        OpenFangToast.error(t('settings_provider_key_required'));
         return;
       }
       this.savingKey = true;
@@ -378,12 +411,12 @@ function wizardPage() {
         this.apiKeyInput = '';
         this.keySaved = true;
         this.setupSummary.provider = provider.display_name;
-        OpenFangToast.success('API key saved for ' + provider.display_name);
+        OpenFangToast.success(t('wizard_api_key_saved', { provider: provider.display_name }));
         await this.loadProviders();
         // Auto-test after saving
         await this.testKey();
       } catch(e) {
-        OpenFangToast.error('Failed to save key: ' + e.message);
+        OpenFangToast.error(t('settings_save_failed', { error: e.message }));
       }
       this.savingKey = false;
     },
@@ -397,13 +430,13 @@ function wizardPage() {
         var result = await OpenFangAPI.post('/api/providers/' + encodeURIComponent(provider.id) + '/test', {});
         this.testResult = result;
         if (result.status === 'ok') {
-          OpenFangToast.success(provider.display_name + ' connected (' + (result.latency_ms || '?') + 'ms)');
+          OpenFangToast.success(t('settings_provider_test_ok', { provider: provider.display_name, latency: result.latency_ms || '?' }));
         } else {
-          OpenFangToast.error(provider.display_name + ': ' + (result.error || 'Connection failed'));
+          OpenFangToast.error(t('settings_provider_test_failed', { provider: provider.display_name, error: result.error || 'Connection failed' }));
         }
       } catch(e) {
         this.testResult = { status: 'error', error: e.message };
-        OpenFangToast.error('Test failed: ' + e.message);
+        OpenFangToast.error(t('settings_test_failed', { error: e.message }));
       }
       this.testingProvider = false;
     },
@@ -423,7 +456,7 @@ function wizardPage() {
       if (!tpl) return;
       var name = this.agentName.trim();
       if (!name) {
-        OpenFangToast.error('Please enter a name for your agent');
+        OpenFangToast.error(t('wizard_name_required'));
         return;
       }
 
@@ -450,13 +483,13 @@ function wizardPage() {
         if (res.agent_id) {
           this.createdAgent = { id: res.agent_id, name: res.name || name };
           this.setupSummary.agent = res.name || name;
-          OpenFangToast.success('Agent "' + (res.name || name) + '" created');
+          OpenFangToast.success(t('wizard_agent_created', { name: res.name || name }));
           await Alpine.store('app').refreshAgents();
         } else {
-          OpenFangToast.error('Failed: ' + (res.error || 'Unknown error'));
+          OpenFangToast.error(t('wizard_failed', { error: res.error || 'Unknown error' }));
         }
       } catch(e) {
-        OpenFangToast.error('Failed to create agent: ' + e.message);
+        OpenFangToast.error(t('wizard_create_failed', { error: e.message }));
       }
       this.creatingAgent = false;
     },
@@ -502,7 +535,7 @@ function wizardPage() {
       if (!ch) return;
       var token = this.channelToken.trim();
       if (!token) {
-        OpenFangToast.error('Please enter the ' + ch.token_label);
+        OpenFangToast.error(t('wizard_channel_missing', { field: ch.token_label }));
         return;
       }
       this.configuringChannel = true;
@@ -513,9 +546,9 @@ function wizardPage() {
         await OpenFangAPI.post('/api/channels/' + ch.name + '/configure', { fields: fields });
         this.channelConfigured = true;
         this.setupSummary.channel = ch.display_name;
-        OpenFangToast.success(ch.display_name + ' configured and activated.');
+        OpenFangToast.success(t('wizard_channel_configured', { channel: ch.display_name }));
       } catch(e) {
-        OpenFangToast.error('Failed: ' + (e.message || 'Unknown error'));
+        OpenFangToast.error(t('wizard_failed', { error: e.message || 'Unknown error' }));
       }
       this.configuringChannel = false;
     },

@@ -249,7 +249,7 @@ function settingsPage() {
           context_window: this.customModelContext || 128000,
           max_output_tokens: this.customModelMaxOutput || 8192,
         });
-        this.customModelStatus = 'Added!';
+        this.customModelStatus = t('settings_model_added');
         this.customModelId = '';
         this.showCustomModelForm = false;
         await this.loadModels();
@@ -259,13 +259,13 @@ function settingsPage() {
     },
 
     async deleteCustomModel(modelId) {
-      if (!confirm('Delete custom model "' + modelId + '"?')) return;
+      if (!confirm(t('settings_delete_custom_model', { model: modelId }))) return;
       try {
         await OpenFangAPI.del('/api/models/custom/' + encodeURIComponent(modelId));
-        OpenFangToast.success('Model deleted');
+        OpenFangToast.success(t('settings_model_deleted'));
         await this.loadModels();
       } catch(e) {
-        OpenFangToast.error('Failed to delete: ' + (e.message || 'Unknown error'));
+        OpenFangToast.error(t('settings_save_failed', { error: e.message || 'Unknown error' }));
       }
     },
 
@@ -275,28 +275,77 @@ function settingsPage() {
           OpenFangAPI.get('/api/config/schema').catch(function() { return {}; }),
           OpenFangAPI.get('/api/config')
         ]);
-        this.configSchema = results[0].sections || null;
-        this.configValues = results[1] || {};
+        this.configSchema = this.normalizeConfigSchema(results[0].sections || null);
+        this.configValues = this.normalizeConfigValues(results[1] || {}, this.configSchema);
       } catch(e) { /* silent */ }
     },
 
+    normalizeConfigSchema(rawSections) {
+      if (!rawSections) return null;
+      var normalized = {};
+      Object.keys(rawSections).forEach(function(sectionName) {
+        var section = rawSections[sectionName] || {};
+        var fields = section.fields || {};
+        normalized[sectionName] = Object.keys(fields).map(function(fieldName) {
+          var field = fields[fieldName];
+          if (typeof field === 'string') {
+            return { name: fieldName, type: field, path: sectionName + '.' + fieldName };
+          }
+          return {
+            name: fieldName,
+            type: field.type || 'string',
+            options: field.options || null,
+            label: field.label || fieldName,
+            description: field.description || '',
+            path: field.path || (sectionName + '.' + fieldName)
+          };
+        });
+      });
+      return normalized;
+    },
+
+    normalizeConfigValues(config, schema) {
+      var values = JSON.parse(JSON.stringify(config || {}));
+      if (!schema) return values;
+      Object.keys(schema).forEach(function(sectionName) {
+        values[sectionName] = values[sectionName] || {};
+        schema[sectionName].forEach(function(field) {
+          if (field.path && field.path.indexOf('.') === -1 && config[field.path] !== undefined) {
+            values[sectionName][field.name] = config[field.path];
+          }
+        });
+      });
+      return values;
+    },
+
+    resolveConfigFieldKey(section, field) {
+      var fields = this.configSchema && this.configSchema[section] ? this.configSchema[section] : [];
+      for (var i = 0; i < fields.length; i++) {
+        if (fields[i].name === field) return fields[i].path || (section + '.' + field);
+      }
+      return section + '.' + field;
+    },
+
     isConfigDirty(section, field) {
-      return this.configDirty[section + '.' + field] === true;
+      return this.configDirty[this.resolveConfigFieldKey(section, field)] === true;
     },
 
     markConfigDirty(section, field) {
-      this.configDirty[section + '.' + field] = true;
+      this.configDirty[this.resolveConfigFieldKey(section, field)] = true;
     },
 
     async saveConfigField(section, field, value) {
-      var key = section + '.' + field;
+      var key = this.resolveConfigFieldKey(section, field);
       this.configSaving[key] = true;
       try {
         await OpenFangAPI.post('/api/config/set', { path: key, value: value });
         this.configDirty[key] = false;
-        OpenFangToast.success('Saved ' + key);
+        OpenFangToast.success(t('settings_language_saved') + ': ' + key);
+        if (key === 'language') {
+          Alpine.store('app').setLanguagePreference(value, false);
+        }
       } catch(e) {
-        OpenFangToast.error('Failed to save: ' + e.message);
+        OpenFangToast.error(t('settings_save_failed', { error: e.message }));
       }
       this.configSaving[key] = false;
     },
@@ -388,26 +437,26 @@ function settingsPage() {
 
     async saveProviderKey(provider) {
       var key = this.providerKeyInputs[provider.id];
-      if (!key || !key.trim()) { OpenFangToast.error('Please enter an API key'); return; }
+      if (!key || !key.trim()) { OpenFangToast.error(t('settings_provider_key_required')); return; }
       try {
         await OpenFangAPI.post('/api/providers/' + encodeURIComponent(provider.id) + '/key', { key: key.trim() });
-        OpenFangToast.success('API key saved for ' + provider.display_name);
+        OpenFangToast.success(t('settings_provider_key_saved', { provider: provider.display_name }));
         this.providerKeyInputs[provider.id] = '';
         await this.loadProviders();
         await this.loadModels();
       } catch(e) {
-        OpenFangToast.error('Failed to save key: ' + e.message);
+        OpenFangToast.error(t('settings_save_failed', { error: e.message }));
       }
     },
 
     async removeProviderKey(provider) {
       try {
         await OpenFangAPI.del('/api/providers/' + encodeURIComponent(provider.id) + '/key');
-        OpenFangToast.success('API key removed for ' + provider.display_name);
+        OpenFangToast.success(t('settings_provider_key_removed', { provider: provider.display_name }));
         await this.loadProviders();
         await this.loadModels();
       } catch(e) {
-        OpenFangToast.error('Failed to remove key: ' + e.message);
+        OpenFangToast.error(t('settings_save_failed', { error: e.message }));
       }
     },
 
@@ -466,35 +515,35 @@ function settingsPage() {
         var result = await OpenFangAPI.post('/api/providers/' + encodeURIComponent(provider.id) + '/test', {});
         this.providerTestResults[provider.id] = result;
         if (result.status === 'ok') {
-          OpenFangToast.success(provider.display_name + ' connected (' + (result.latency_ms || '?') + 'ms)');
+          OpenFangToast.success(t('settings_provider_test_ok', { provider: provider.display_name, latency: result.latency_ms || '?' }));
         } else {
-          OpenFangToast.error(provider.display_name + ': ' + (result.error || 'Connection failed'));
+          OpenFangToast.error(t('settings_provider_test_failed', { provider: provider.display_name, error: result.error || 'Connection failed' }));
         }
       } catch(e) {
         this.providerTestResults[provider.id] = { status: 'error', error: e.message };
-        OpenFangToast.error('Test failed: ' + e.message);
+        OpenFangToast.error(t('settings_test_failed', { error: e.message }));
       }
       this.providerTesting[provider.id] = false;
     },
 
     async saveProviderUrl(provider) {
       var url = this.providerUrlInputs[provider.id];
-      if (!url || !url.trim()) { OpenFangToast.error('Please enter a base URL'); return; }
+      if (!url || !url.trim()) { OpenFangToast.error(t('settings_base_url_required')); return; }
       url = url.trim();
       if (url.indexOf('http://') !== 0 && url.indexOf('https://') !== 0) {
-        OpenFangToast.error('URL must start with http:// or https://'); return;
+        OpenFangToast.error(t('settings_base_url_invalid')); return;
       }
       this.providerUrlSaving[provider.id] = true;
       try {
         var result = await OpenFangAPI.put('/api/providers/' + encodeURIComponent(provider.id) + '/url', { base_url: url });
         if (result.reachable) {
-          OpenFangToast.success(provider.display_name + ' URL saved &mdash; reachable (' + (result.latency_ms || '?') + 'ms)');
+          OpenFangToast.success(t('settings_base_url_saved_ok', { provider: provider.display_name, latency: result.latency_ms || '?' }));
         } else {
-          OpenFangToast.warning(provider.display_name + ' URL saved but not reachable');
+          OpenFangToast.warning(t('settings_base_url_saved_unreachable', { provider: provider.display_name }));
         }
         await this.loadProviders();
       } catch(e) {
-        OpenFangToast.error('Failed to save URL: ' + e.message);
+        OpenFangToast.error(t('settings_save_failed', { error: e.message }));
       }
       this.providerUrlSaving[provider.id] = false;
     },

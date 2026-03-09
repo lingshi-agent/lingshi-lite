@@ -23,6 +23,8 @@ const LOGO_PNG: &[u8] = include_bytes!("../static/logo.png");
 
 /// Embedded favicon ICO for browser tabs.
 const FAVICON_ICO: &[u8] = include_bytes!("../static/favicon.ico");
+/// Embedded WeChat customer service QR image.
+const WXKF_JPG: &[u8] = include_bytes!("../static/wxkf.jpg");
 
 /// GET /logo.png — Serve the OpenFang logo.
 pub async fn logo_png() -> impl IntoResponse {
@@ -43,6 +45,17 @@ pub async fn favicon_ico() -> impl IntoResponse {
             (header::CACHE_CONTROL, "public, max-age=86400, immutable"),
         ],
         FAVICON_ICO,
+    )
+}
+
+/// GET /wxkf.jpg — Serve the WeChat customer service QR image.
+pub async fn wxkf_jpg() -> impl IntoResponse {
+    (
+        [
+            (header::CONTENT_TYPE, "image/jpeg"),
+            (header::CACHE_CONTROL, "public, max-age=86400, immutable"),
+        ],
+        WXKF_JPG,
     )
 }
 
@@ -87,6 +100,9 @@ const WEBCHAT_HTML: &str = concat!(
     "\n</script>\n",
     "<script>\n",
     include_str!("../static/vendor/highlight.min.js"),
+    "\n</script>\n",
+    "<script>\n",
+    include_str!("../static/js/i18n.js"),
     "\n</script>\n",
     // App code
     "<script>\n",

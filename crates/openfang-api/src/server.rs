@@ -108,6 +108,7 @@ pub async fn build_router(
     let app = Router::new()
         .route("/", axum::routing::get(webchat::webchat_page))
         .route("/logo.png", axum::routing::get(webchat::logo_png))
+        .route("/wxkf.jpg", axum::routing::get(webchat::wxkf_jpg))
         .route("/favicon.ico", axum::routing::get(webchat::favicon_ico))
         .route(
             "/api/metrics",
@@ -241,6 +242,18 @@ pub async fn build_router(
         .route(
             "/api/channels/whatsapp/qr/status",
             axum::routing::get(routes::whatsapp_qr_status),
+        )
+        .route(
+            "/api/channels/wechat/shortcode/start",
+            axum::routing::post(routes::wechat_shortcode_start),
+        )
+        .route(
+            "/api/channels/wechat/shortcode/status",
+            axum::routing::get(routes::wechat_shortcode_status),
+        )
+        .route(
+            "/api/channels/wechat/unbind",
+            axum::routing::post(routes::wechat_unbind),
         )
         // Template endpoints
         .route("/api/templates", axum::routing::get(routes::list_templates))

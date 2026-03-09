@@ -3,10 +3,10 @@
 <!-- API Key Auth Prompt -->
 <div x-show="$store.app.showAuthPrompt" style="position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px)" x-data="{ apiKeyInput: '' }">
   <div style="background:var(--bg-card,#1e1e2e);border:1px solid var(--border,#333);border-radius:12px;padding:2rem;max-width:400px;width:90%">
-    <h3 style="margin:0 0 0.5rem;font-size:1.1rem">API Key Required</h3>
-    <p style="color:var(--text-dim,#888);font-size:0.85rem;margin:0 0 1rem">This instance requires an API key. Enter the key from your <code>config.toml</code>.</p>
-    <input type="password" x-model="apiKeyInput" placeholder="Enter API key..." @keydown.enter="$store.app.submitApiKey(apiKeyInput)" style="width:100%;padding:0.6rem;border-radius:6px;border:1px solid var(--border,#333);background:var(--bg-input,#151520);color:var(--text,#e0e0e0);font-size:0.9rem;box-sizing:border-box;margin-bottom:0.75rem">
-    <button @click="$store.app.submitApiKey(apiKeyInput)" style="width:100%;padding:0.6rem;border-radius:6px;border:none;background:var(--accent,#7c3aed);color:#fff;font-weight:600;cursor:pointer;font-size:0.9rem">Unlock Dashboard</button>
+    <h3 style="margin:0 0 0.5rem;font-size:1.1rem" x-text="t('auth_required')"></h3>
+    <p style="color:var(--text-dim,#888);font-size:0.85rem;margin:0 0 1rem" x-html="t('auth_required_desc')"></p>
+    <input type="password" x-model="apiKeyInput" :placeholder="t('auth_enter_key')" @keydown.enter="$store.app.submitApiKey(apiKeyInput)" style="width:100%;padding:0.6rem;border-radius:6px;border:1px solid var(--border,#333);background:var(--bg-input,#151520);color:var(--text,#e0e0e0);font-size:0.9rem;box-sizing:border-box;margin-bottom:0.75rem">
+    <button @click="$store.app.submitApiKey(apiKeyInput)" style="width:100%;padding:0.6rem;border-radius:6px;border:none;background:var(--accent,#7c3aed);color:#fff;font-weight:600;cursor:pointer;font-size:0.9rem" x-text="t('auth_unlock')"></button>
   </div>
 </div>
 
@@ -24,145 +24,149 @@
         </div>
       </div>
       <div class="theme-switcher">
-        <button class="theme-opt" :class="{ active: themeMode === 'light' }" @click="setTheme('light')" title="Light">&#9788;</button>
-        <button class="theme-opt" :class="{ active: themeMode === 'system' }" @click="setTheme('system')" title="System">&#9675;</button>
-        <button class="theme-opt" :class="{ active: themeMode === 'dark' }" @click="setTheme('dark')" title="Dark">&#9790;</button>
+        <button class="theme-opt" :class="{ active: themeMode === 'light' }" @click="setTheme('light')" :title="t('theme_light')">&#9788;</button>
+        <button class="theme-opt" :class="{ active: themeMode === 'system' }" @click="setTheme('system')" :title="t('theme_system')">&#9675;</button>
+        <button class="theme-opt" :class="{ active: themeMode === 'dark' }" @click="setTheme('dark')" :title="t('theme_dark')">&#9790;</button>
       </div>
+    </div>
+    <div style="padding:0 16px 10px;display:flex;gap:6px">
+      <button class="btn btn-ghost btn-sm" :class="{ active: currentLanguage === 'en' }" @click="setLanguage('en')" x-text="languageLabel('en')"></button>
+      <button class="btn btn-ghost btn-sm" :class="{ active: currentLanguage === 'zh-CN' }" @click="setLanguage('zh-CN')" x-text="languageLabel('zh-CN')"></button>
     </div>
 
     <div class="sidebar-status" :class="{ offline: !connected && !$store.app.booting }">
       <span class="status-dot"></span>
-      <span class="sidebar-label" x-show="connected" x-text="agentCount + ' agent(s) running'"></span>
-      <span class="sidebar-label" x-show="$store.app.booting && !connected" class="conn-reconnecting">Connecting...</span>
-      <span class="sidebar-label" x-show="!connected && !$store.app.booting && $store.app.connectionState === 'reconnecting'" class="conn-reconnecting">Reconnecting...</span>
-      <span class="sidebar-label" x-show="!connected && !$store.app.booting && $store.app.connectionState !== 'reconnecting'" x-text="'disconnected' + ($store.app.lastError ? ' — ' + $store.app.lastError : '')">disconnected</span>
+      <span class="sidebar-label" x-show="connected" x-text="t('sidebar_agents_running', { count: agentCount })"></span>
+      <span class="sidebar-label" x-show="$store.app.booting && !connected" class="conn-reconnecting" x-text="t('sidebar_connecting')"></span>
+      <span class="sidebar-label" x-show="!connected && !$store.app.booting && $store.app.connectionState === 'reconnecting'" class="conn-reconnecting" x-text="t('sidebar_reconnecting')"></span>
+      <span class="sidebar-label" x-show="!connected && !$store.app.booting && $store.app.connectionState !== 'reconnecting'" x-text="t('sidebar_disconnected') + ($store.app.lastError ? ' — ' + $store.app.lastError : '')">disconnected</span>
       <span class="conn-badge sidebar-label" :class="wsConnected ? 'ws' : 'http'" x-text="wsConnected ? 'WS' : 'HTTP'" x-show="connected"></span>
     </div>
 
-    <div class="sidebar-nav" role="navigation" aria-label="Main navigation">
+    <div class="sidebar-nav" role="navigation" :aria-label="t('nav_main')">
       <!-- Chat — primary action -->
-      <div class="nav-section" x-data="{ collapsed: false }" aria-label="Chat">
+      <div class="nav-section" x-data="{ collapsed: false }" :aria-label="t('nav_chat')">
         <div class="nav-section-title" @click="collapsed = !collapsed">
-          <span class="nav-label">Chat</span>
+          <span class="nav-label" x-text="t('nav_chat')"></span>
           <span class="nav-section-chevron" :style="collapsed ? '' : 'transform:rotate(90deg)'">&rsaquo;</span>
         </div>
         <template x-if="!collapsed">
           <div x-transition>
             <a class="nav-item" :class="{ active: page === 'agents' }" @click="navigate('agents')" :aria-current="page === 'agents' ? 'page' : false">
               <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span>
-              <span class="nav-label">Chat</span>
+              <span class="nav-label" x-text="t('nav_chat')"></span>
             </a>
           </div>
         </template>
       </div>
 
       <!-- Monitor -->
-      <div class="nav-section" x-data="{ collapsed: false }" aria-label="Monitor">
+      <div class="nav-section" x-data="{ collapsed: false }" :aria-label="t('nav_monitor')">
         <div class="nav-section-title" @click="collapsed = !collapsed">
-          <span class="nav-label">Monitor</span>
+          <span class="nav-label" x-text="t('nav_monitor')"></span>
           <span class="nav-section-chevron" :style="collapsed ? '' : 'transform:rotate(90deg)'">&rsaquo;</span>
         </div>
         <template x-if="!collapsed">
           <div x-transition>
             <a class="nav-item" :class="{ active: page === 'overview' }" @click="navigate('overview')" :aria-current="page === 'overview' ? 'page' : false">
               <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/></svg></span>
-              <span class="nav-label">Overview</span>
+              <span class="nav-label" x-text="t('nav_overview')"></span>
             </a>
             <a class="nav-item" :class="{ active: page === 'analytics' }" @click="navigate('analytics')" :aria-current="page === 'analytics' ? 'page' : false">
               <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M18 20V10M12 20V4M6 20v-6"/></svg></span>
-              <span class="nav-label">Analytics</span>
+              <span class="nav-label" x-text="t('nav_analytics')"></span>
             </a>
             <a class="nav-item" :class="{ active: page === 'logs' }" @click="navigate('logs')" :aria-current="page === 'logs' ? 'page' : false">
               <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="m4 17 6-6-6-6"/><path d="M12 19h8"/></svg></span>
-              <span class="nav-label">Logs</span>
+              <span class="nav-label" x-text="t('nav_logs')"></span>
             </a>
           </div>
         </template>
       </div>
 
       <!-- Agents -->
-      <div class="nav-section" x-data="{ collapsed: false }" aria-label="Agents">
+      <div class="nav-section" x-data="{ collapsed: false }" :aria-label="t('nav_agents')">
         <div class="nav-section-title" @click="collapsed = !collapsed">
-          <span class="nav-label">Agents</span>
+          <span class="nav-label" x-text="t('nav_agents')"></span>
           <span class="nav-section-chevron" :style="collapsed ? '' : 'transform:rotate(90deg)'">&rsaquo;</span>
         </div>
         <template x-if="!collapsed">
           <div x-transition>
             <a class="nav-item" :class="{ active: page === 'sessions' }" @click="navigate('sessions')" :aria-current="page === 'sessions' ? 'page' : false">
               <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="m12 2-10 5 10 5 10-5z"/><path d="m2 17 10 5 10-5"/><path d="m2 12 10 5 10-5"/></svg></span>
-              <span class="nav-label">Sessions</span>
+              <span class="nav-label" x-text="t('nav_sessions')"></span>
             </a>
             <a class="nav-item" :class="{ active: page === 'approvals' }" @click="navigate('approvals')" :aria-current="page === 'approvals' ? 'page' : false">
               <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg></span>
-              <span class="nav-label">Approvals</span>
+              <span class="nav-label" x-text="t('nav_approvals')"></span>
             </a>
             <a class="nav-item" :class="{ active: page === 'comms' }" @click="navigate('comms')" :aria-current="page === 'comms' ? 'page' : false">
               <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg></span>
-              <span class="nav-label">Comms</span>
+              <span class="nav-label" x-text="t('nav_comms')"></span>
             </a>
           </div>
         </template>
       </div>
 
       <!-- Automation -->
-      <div class="nav-section" x-data="{ collapsed: false }" aria-label="Automation">
+      <div class="nav-section" x-data="{ collapsed: false }" :aria-label="t('nav_automation')">
         <div class="nav-section-title" @click="collapsed = !collapsed">
-          <span class="nav-label">Automation</span>
+          <span class="nav-label" x-text="t('nav_automation')"></span>
           <span class="nav-section-chevron" :style="collapsed ? '' : 'transform:rotate(90deg)'">&rsaquo;</span>
         </div>
         <template x-if="!collapsed">
           <div x-transition>
             <a class="nav-item" :class="{ active: page === 'workflows' }" @click="navigate('workflows')" :aria-current="page === 'workflows' ? 'page' : false">
               <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M6 3v12M18 9a9 9 0 0 1-9 9"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/></svg></span>
-              <span class="nav-label">Workflows</span>
+              <span class="nav-label" x-text="t('nav_workflows')"></span>
             </a>
             <a class="nav-item" :class="{ active: page === 'scheduler' }" @click="navigate('scheduler')" :aria-current="page === 'scheduler' ? 'page' : false">
               <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg></span>
-              <span class="nav-label">Scheduler</span>
+              <span class="nav-label" x-text="t('nav_scheduler')"></span>
             </a>
           </div>
         </template>
       </div>
 
       <!-- Extensions -->
-      <div class="nav-section" x-data="{ collapsed: false }" aria-label="Extensions">
+      <div class="nav-section" x-data="{ collapsed: false }" :aria-label="t('nav_extensions')">
         <div class="nav-section-title" @click="collapsed = !collapsed">
-          <span class="nav-label">Extensions</span>
+          <span class="nav-label" x-text="t('nav_extensions')"></span>
           <span class="nav-section-chevron" :style="collapsed ? '' : 'transform:rotate(90deg)'">&rsaquo;</span>
         </div>
         <template x-if="!collapsed">
           <div x-transition>
             <a class="nav-item" :class="{ active: page === 'channels' }" @click="navigate('channels')" :aria-current="page === 'channels' ? 'page' : false">
               <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M4 9h16M4 15h16M10 3l-2 18M16 3l-2 18"/></svg></span>
-              <span class="nav-label">Channels</span>
+              <span class="nav-label" x-text="t('nav_channels')"></span>
             </a>
             <a class="nav-item" :class="{ active: page === 'skills' }" @click="navigate('skills')" :aria-current="page === 'skills' ? 'page' : false">
               <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="m16 18 6-6-6-6M8 6l-6 6 6 6"/></svg></span>
-              <span class="nav-label">Skills</span>
+              <span class="nav-label" x-text="t('nav_skills')"></span>
             </a>
             <a class="nav-item" :class="{ active: page === 'hands' }" @click="navigate('hands')" :aria-current="page === 'hands' ? 'page' : false">
               <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M18 11V6a2 2 0 0 0-2-2 2 2 0 0 0-2 2"/><path d="M14 10V4a2 2 0 0 0-2-2 2 2 0 0 0-2 2v6"/><path d="M10 10.5V6a2 2 0 0 0-2-2 2 2 0 0 0-2 2v8"/><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.9-5.7-2.4L3.4 16a2 2 0 0 1 3.2-2.4L8 15"/></svg></span>
-              <span class="nav-label">Hands</span>
+              <span class="nav-label" x-text="t('nav_hands')"></span>
             </a>
           </div>
         </template>
       </div>
 
       <!-- System -->
-      <div class="nav-section" x-data="{ collapsed: false }" aria-label="System">
+      <div class="nav-section" x-data="{ collapsed: false }" :aria-label="t('nav_system')">
         <div class="nav-section-title" @click="collapsed = !collapsed">
-          <span class="nav-label">System</span>
+          <span class="nav-label" x-text="t('nav_system')"></span>
           <span class="nav-section-chevron" :style="collapsed ? '' : 'transform:rotate(90deg)'">&rsaquo;</span>
         </div>
         <template x-if="!collapsed">
           <div x-transition>
             <a class="nav-item" :class="{ active: page === 'runtime' }" @click="navigate('runtime')" :aria-current="page === 'runtime' ? 'page' : false">
               <span class="nav-icon"><svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg></span>
-              <span class="nav-label">Runtime</span>
+              <span class="nav-label" x-text="t('nav_runtime')"></span>
             </a>
             <a class="nav-item" :class="{ active: page === 'settings' }" @click="navigate('settings')" :aria-current="page === 'settings' ? 'page' : false">
               <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3"/><path d="M1 14h6M9 8h6M17 16h6"/></svg></span>
-              <span class="nav-label">Settings</span>
+              <span class="nav-label" x-text="t('nav_settings')"></span>
             </a>
           </div>
         </template>
@@ -170,7 +174,7 @@
     </div>
 
     <div class="sidebar-footer">
-      <div class="sidebar-label text-xs text-dim" style="padding:0 16px 4px;letter-spacing:0.5px">Ctrl+K agents | Ctrl+N new</div>
+      <div class="sidebar-label text-xs text-dim" style="padding:0 16px 4px;letter-spacing:0.5px" x-text="t('sidebar_shortcuts')"></div>
     </div>
     <div class="sidebar-toggle" @click="toggleSidebar()" x-text="sidebarCollapsed ? '\u276F' : '\u276E'"></div>
   </nav>
@@ -188,10 +192,10 @@
     <template x-if="page === 'overview'">
       <div x-data="overviewPage" x-init="loadOverview().then(() => startAutoRefresh())" @page-leave.window="stopAutoRefresh()">
         <div class="page-header">
-          <h2>Overview</h2>
+          <h2 x-text="t('nav_overview')"></h2>
           <div class="flex items-center gap-2">
-            <span class="health-indicator" :class="health.status === 'ok' ? 'health-ok' : 'health-down'" x-text="health.status === 'ok' ? 'Healthy' : 'Unreachable'"></span>
-            <button class="btn btn-ghost btn-sm" @click="silentRefresh()" title="Refresh" style="padding:4px 8px">
+            <span class="health-indicator" :class="health.status === 'ok' ? 'health-ok' : 'health-down'" x-text="health.status === 'ok' ? t('health_healthy') : t('health_unreachable')"></span>
+            <button class="btn btn-ghost btn-sm" @click="silentRefresh()" :title="t('common_refresh')" style="padding:4px 8px">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
             </button>
           </div>
@@ -213,21 +217,21 @@
             <div class="empty-state-icon">
               <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--error)" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
             </div>
-            <h3 style="color:var(--error)">Connection Error</h3>
+            <h3 style="color:var(--error)" x-text="t('overview_connection_error')"></h3>
             <p class="text-xs text-dim" x-text="loadError"></p>
-            <button class="btn btn-primary btn-sm" @click="loadData()" style="margin-top:8px">Retry</button>
+            <button class="btn btn-primary btn-sm" @click="loadData()" style="margin-top:8px" x-text="t('common_retry')"></button>
           </div>
           <!-- Setup Checklist -->
           <div class="setup-checklist" x-show="!loading && !loadError && setupProgress < 100 && !checklistDismissed" style="animation:slideUp 0.3s var(--ease-spring)">
             <div class="card" style="border-left:4px solid var(--accent)">
               <div class="flex justify-between items-center mb-2">
                 <div>
-                  <div class="card-header" style="margin:0">Getting Started</div>
-                  <div class="text-xs text-dim" x-text="setupDoneCount + ' of 5 steps completed'"></div>
+                  <div class="card-header" style="margin:0" x-text="t('overview_getting_started')"></div>
+                  <div class="text-xs text-dim" x-text="t('overview_steps_completed', { done: setupDoneCount, total: 5 })"></div>
                 </div>
                 <div class="flex gap-2">
-                  <button class="btn btn-primary btn-sm" @click="location.hash='wizard'">Setup Wizard</button>
-                  <button class="btn btn-ghost btn-sm" @click="dismissChecklist()">Dismiss</button>
+                  <button class="btn btn-primary btn-sm" @click="location.hash='wizard'" x-text="t('overview_setup_wizard')"></button>
+                  <button class="btn btn-ghost btn-sm" @click="dismissChecklist()" x-text="t('common_dismiss')"></button>
                 </div>
               </div>
               <div class="progress-bar mb-2" style="margin-top:8px">
@@ -240,19 +244,19 @@
                     <span x-show="!item.done">&#9675;</span>
                   </div>
                   <span style="flex:1" :style="item.done ? 'text-decoration:line-through;opacity:0.6' : ''" x-text="item.label"></span>
-                  <a x-show="!item.done" :href="item.action" class="btn btn-ghost btn-sm" style="font-size:10px;padding:3px 8px">Go</a>
+                  <a x-show="!item.done" :href="item.action" class="btn btn-ghost btn-sm" style="font-size:10px;padding:3px 8px" x-text="t('common_go')"></a>
                 </div>
               </template>
             </div>
           </div>
           <!-- Onboarding banner -->
           <div class="onboarding-banner" x-show="!loading && !loadError && $store.app.showOnboarding && checklistDismissed">
-            <h3>Welcome to OpenFang</h3>
-            <p style="font-size:12px;color:var(--text-dim)">Get started quickly with the guided Setup Wizard, or configure manually:</p>
+            <h3 x-text="t('overview_welcome')"></h3>
+            <p style="font-size:12px;color:var(--text-dim)" x-text="t('overview_welcome_desc')"></p>
             <div class="flex gap-2">
-              <button class="btn btn-primary" @click="location.hash='wizard'">Launch Setup Wizard</button>
-              <button class="btn btn-ghost" @click="location.hash='settings'">Configure Manually</button>
-              <button class="btn btn-ghost" @click="$store.app.dismissOnboarding()">Dismiss</button>
+              <button class="btn btn-primary" @click="location.hash='wizard'" x-text="t('overview_launch_wizard')"></button>
+              <button class="btn btn-ghost" @click="location.hash='settings'" x-text="t('overview_configure_manual')"></button>
+              <button class="btn btn-ghost" @click="$store.app.dismissOnboarding()" x-text="t('common_dismiss')"></button>
             </div>
           </div>
           <div x-show="!loading && !loadError" style="animation:fadeIn 0.3s">
@@ -266,7 +270,7 @@
                 </div>
                 <div>
                   <div class="stat-value" :class="(status.agent_count || 0) > 0 ? 'stat-value-success' : ''" x-text="status.agent_count || 0"></div>
-                  <div class="stat-label">Agents Running</div>
+                  <div class="stat-label" x-text="t('overview_agents_running')"></div>
                 </div>
               </div>
             </div>
@@ -277,7 +281,7 @@
                 </div>
                 <div>
                   <div class="stat-value" x-text="formatNumber(usageSummary.total_tokens)"></div>
-                  <div class="stat-label">Tokens Used</div>
+                  <div class="stat-label" x-text="t('overview_tokens_used')"></div>
                 </div>
               </div>
             </div>
@@ -288,7 +292,7 @@
                 </div>
                 <div>
                   <div class="stat-value stat-value-accent" x-text="formatCost(usageSummary.total_cost)"></div>
-                  <div class="stat-label">Total Cost</div>
+                  <div class="stat-label" x-text="t('overview_total_cost')"></div>
                 </div>
               </div>
             </div>
@@ -299,7 +303,7 @@
                 </div>
                 <div>
                   <div class="stat-value" x-text="formatUptime(status.uptime_seconds)"></div>
-                  <div class="stat-label">Uptime</div>
+                  <div class="stat-label" x-text="t('overview_uptime')"></div>
                 </div>
               </div>
             </div>
@@ -309,23 +313,23 @@
           <div class="stats-row animate-entry stagger-5" style="margin-bottom:16px">
             <div class="stat-card" @click="location.hash='channels'" style="cursor:pointer">
               <div class="stat-value" style="font-size:18px" x-text="channels.length"></div>
-              <div class="stat-label">Channels</div>
+              <div class="stat-label" x-text="t('overview_channels')"></div>
             </div>
             <div class="stat-card" @click="location.hash='skills'" style="cursor:pointer">
               <div class="stat-value" style="font-size:18px" x-text="skillCount"></div>
-              <div class="stat-label">Skills</div>
+              <div class="stat-label" x-text="t('overview_skills')"></div>
             </div>
             <div class="stat-card">
               <div class="stat-value" style="font-size:18px" x-text="connectedMcp.length"></div>
-              <div class="stat-label">MCP Servers</div>
+              <div class="stat-label" x-text="t('overview_mcp_servers')"></div>
             </div>
             <div class="stat-card">
               <div class="stat-value" style="font-size:18px" x-text="formatNumber(usageSummary.total_tools)"></div>
-              <div class="stat-label">Tool Calls</div>
+              <div class="stat-label" x-text="t('overview_tool_calls')"></div>
             </div>
             <div class="stat-card">
               <div class="stat-value" :class="configuredProviders.length > 0 ? 'stat-value-success' : ''" style="font-size:18px" x-text="configuredProviders.length"></div>
-              <div class="stat-label">Providers</div>
+              <div class="stat-label" x-text="t('overview_providers')"></div>
             </div>
           </div>
 
@@ -334,9 +338,9 @@
             <div class="flex justify-between items-center mb-2">
               <div class="card-header" style="margin:0">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline;margin-right:4px;vertical-align:-2px"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
-                LLM Providers
+                <span x-text="t('overview_llm_providers')"></span>
               </div>
-              <span class="text-xs text-dim" x-text="configuredProviders.length + '/' + providers.length + ' configured'"></span>
+              <span class="text-xs text-dim" x-text="t('overview_configured_count', { configured: configuredProviders.length, total: providers.length })"></span>
             </div>
             <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">
               <template x-for="p in providers" :key="p.id">
@@ -353,13 +357,13 @@
             <div class="card">
               <div class="card-header">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline;margin-right:4px;vertical-align:-2px"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
-                System Health
+                <span x-text="t('overview_system_health')"></span>
               </div>
               <div class="detail-grid" style="margin-top:8px">
-                <div class="detail-row"><span class="detail-label">Status</span><span class="badge" :class="health.status === 'ok' ? 'badge-running' : 'badge-crashed'" x-text="health.status || 'unknown'"></span></div>
-                <div class="detail-row"><span class="detail-label">Version</span><span class="detail-value font-mono" x-text="status.version || '-'"></span></div>
-                <div class="detail-row"><span class="detail-label">Provider</span><span class="detail-value" x-text="status.default_provider || '-'"></span></div>
-                <div class="detail-row"><span class="detail-label">Model</span><span class="detail-value font-mono" style="font-size:11px" x-text="status.default_model || '-'"></span></div>
+                <div class="detail-row"><span class="detail-label" x-text="t('overview_status')"></span><span class="badge" :class="health.status === 'ok' ? 'badge-running' : 'badge-crashed'" x-text="health.status || t('common_unknown')"></span></div>
+                <div class="detail-row"><span class="detail-label" x-text="t('overview_version')"></span><span class="detail-value font-mono" x-text="status.version || '-'"></span></div>
+                <div class="detail-row"><span class="detail-label" x-text="t('overview_provider')"></span><span class="detail-value" x-text="status.default_provider || '-'"></span></div>
+                <div class="detail-row"><span class="detail-label" x-text="t('overview_model')"></span><span class="detail-value font-mono" style="font-size:11px" x-text="status.default_model || '-'"></span></div>
               </div>
             </div>
 
@@ -367,7 +371,7 @@
             <div class="card">
               <div class="card-header">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline;margin-right:4px;vertical-align:-2px"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-                Security Systems
+                <span x-text="t('overview_security_systems')"></span>
               </div>
               <div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:8px">
                 <span class="badge badge-success" style="font-size:9px;padding:2px 8px">Merkle Audit</span>
@@ -380,35 +384,35 @@
                 <span class="badge badge-success" style="font-size:9px;padding:2px 8px">Loop Guard</span>
                 <span class="badge badge-success" style="font-size:9px;padding:2px 8px">Session Repair</span>
               </div>
-              <div class="text-xs text-dim" style="margin-top:8px">9 defense-in-depth systems active</div>
+              <div class="text-xs text-dim" style="margin-top:8px" x-text="t('overview_security_active', { count: 9 })"></div>
             </div>
 
             <!-- Connected Channels -->
             <div class="card" x-show="channels.length">
               <div class="card-header">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline;margin-right:4px;vertical-align:-2px"><path d="M4 9h16M4 15h16M10 3l-2 18M16 3l-2 18"/></svg>
-                Connected Channels
+                <span x-text="t('overview_connected_channels')"></span>
               </div>
               <div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:8px">
                 <template x-for="ch in channels" :key="ch.name">
                   <span class="badge badge-info" style="font-size:9px;text-transform:capitalize;padding:2px 8px" x-text="ch.name"></span>
                 </template>
               </div>
-              <div class="text-xs text-dim" style="margin-top:8px" x-text="channels.length + ' channel(s) connected'"></div>
+              <div class="text-xs text-dim" style="margin-top:8px" x-text="t('overview_channels_connected', { count: channels.length })"></div>
             </div>
 
             <!-- MCP Servers -->
             <div class="card" x-show="mcpServers.length">
               <div class="card-header">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline;margin-right:4px;vertical-align:-2px"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"/><rect x="2" y="14" width="20" height="8" rx="2" ry="2"/><path d="M6 6h.01M6 18h.01"/></svg>
-                MCP Servers
+                <span x-text="t('overview_mcp_servers')"></span>
               </div>
               <div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:8px">
                 <template x-for="s in mcpServers" :key="s.name">
                   <div class="badge" :class="s.status === 'connected' ? 'badge-success' : 'badge-dim'" style="font-size:9px;padding:2px 8px">
                     <span style="display:inline-block;width:5px;height:5px;border-radius:50%;margin-right:3px" :style="s.status === 'connected' ? 'background:var(--success)' : 'background:var(--text-dim)'"></span>
                     <span x-text="s.name"></span>
-                    <span class="text-xs text-dim" x-show="s.tool_count" x-text="'(' + s.tool_count + ' tools)'"></span>
+                    <span class="text-xs text-dim" x-show="s.tool_count" x-text="t('overview_tools_count', { count: s.tool_count })"></span>
                   </div>
                 </template>
               </div>
@@ -417,27 +421,27 @@
 
           <!-- Quick Actions -->
           <div class="card mt-4" style="background:var(--bg-elevated)">
-            <div class="card-header" style="margin-bottom:8px">Quick Actions</div>
+            <div class="card-header" style="margin-bottom:8px" x-text="t('overview_quick_actions')"></div>
             <div style="display:flex;flex-wrap:wrap;gap:8px">
               <button class="btn btn-ghost btn-sm" @click="location.hash='agents'" style="display:flex;align-items:center;gap:4px">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg>
-                New Agent
+                <span x-text="t('overview_new_agent')"></span>
               </button>
               <button class="btn btn-ghost btn-sm" @click="location.hash='skills'" style="display:flex;align-items:center;gap:4px">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m16 18 6-6-6-6M8 6l-6 6 6 6"/></svg>
-                Browse Skills
+                <span x-text="t('overview_browse_skills')"></span>
               </button>
               <button class="btn btn-ghost btn-sm" @click="location.hash='channels'" style="display:flex;align-items:center;gap:4px">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 9h16M4 15h16M10 3l-2 18M16 3l-2 18"/></svg>
-                Add Channel
+                <span x-text="t('overview_add_channel')"></span>
               </button>
               <button class="btn btn-ghost btn-sm" @click="location.hash='workflows'" style="display:flex;align-items:center;gap:4px">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 3v12M18 9a9 9 0 0 1-9 9"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/></svg>
-                Create Workflow
+                <span x-text="t('overview_create_workflow')"></span>
               </button>
               <button class="btn btn-ghost btn-sm" @click="location.hash='settings'" style="display:flex;align-items:center;gap:4px">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3"/><path d="M1 14h6M9 8h6M17 16h6"/></svg>
-                Settings
+                <span x-text="t('nav_settings')"></span>
               </button>
             </div>
           </div>
@@ -447,9 +451,9 @@
             <div class="flex justify-between items-center">
               <div class="card-header" style="margin:0">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline;margin-right:4px;vertical-align:-2px"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
-                Recent Activity
+                <span x-text="t('overview_recent_activity')"></span>
               </div>
-              <a class="btn btn-ghost btn-sm" @click="location.hash='logs'" style="font-size:10px;padding:2px 8px">View All</a>
+              <a class="btn btn-ghost btn-sm" @click="location.hash='logs'" style="font-size:10px;padding:2px 8px" x-text="t('overview_view_all')"></a>
             </div>
             <div style="margin-top:12px;display:flex;flex-direction:column;gap:1px">
               <template x-for="(e, idx) in recentAudit" :key="e.seq">
@@ -476,9 +480,9 @@
               <div class="empty-state-icon" style="margin:0 auto 8px">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--text-dim)" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
               </div>
-              <h3 style="color:var(--text-secondary);margin-bottom:4px">No Recent Activity</h3>
-              <p class="text-xs text-dim">Activity will appear here once agents start processing.</p>
-              <button class="btn btn-primary btn-sm" @click="location.hash='agents'" style="margin-top:12px">Chat with an Agent</button>
+              <h3 style="color:var(--text-secondary);margin-bottom:4px" x-text="t('overview_no_recent_activity')"></h3>
+              <p class="text-xs text-dim" x-text="t('overview_no_recent_activity_desc')"></p>
+              <button class="btn btn-primary btn-sm" @click="location.hash='agents'" style="margin-top:12px" x-text="t('overview_chat_with_agent')"></button>
             </div>
           </div>
 
@@ -489,8 +493,8 @@
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
               </div>
               <div>
-                <div class="quick-action-label">Create Agent</div>
-                <div class="quick-action-desc">Spawn a new agent</div>
+                <div class="quick-action-label" x-text="t('overview_create_agent')"></div>
+                <div class="quick-action-desc" x-text="t('overview_create_agent_desc')"></div>
               </div>
             </div>
             <div class="quick-action-card" @click="location.hash='settings'">
@@ -498,8 +502,8 @@
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
               </div>
               <div>
-                <div class="quick-action-label">Configure Provider</div>
-                <div class="quick-action-desc">Set up an LLM provider</div>
+                <div class="quick-action-label" x-text="t('overview_configure_provider')"></div>
+                <div class="quick-action-desc" x-text="t('overview_configure_provider_desc')"></div>
               </div>
             </div>
             <div class="quick-action-card" @click="location.hash='skills'">
@@ -507,8 +511,8 @@
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--info)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 18 6-6-6-6M8 6l-6 6 6 6"/></svg>
               </div>
               <div>
-                <div class="quick-action-label">Browse Skills</div>
-                <div class="quick-action-desc">Explore available skills</div>
+                <div class="quick-action-label" x-text="t('overview_browse_skills')"></div>
+                <div class="quick-action-desc" x-text="t('overview_browse_skills_desc')"></div>
               </div>
             </div>
           </div>
@@ -528,7 +532,7 @@
             <!-- Chat header with back button -->
             <div class="page-header" x-show="currentAgent">
               <div class="flex items-center gap-2" style="min-width:0">
-                <button class="btn btn-ghost btn-sm" @click="$dispatch('close-chat')" title="Back to Agents" style="padding:4px 8px;margin-right:4px">
+                <button class="btn btn-ghost btn-sm" @click="$dispatch('close-chat')" :title="t('common_back_to_agents')" style="padding:4px 8px;margin-right:4px">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
                 </button>
                 <span x-show="currentAgent && currentAgent.identity && currentAgent.identity.emoji" x-text="currentAgent && currentAgent.identity && currentAgent.identity.emoji" style="font-size:20px;line-height:1"></span>
@@ -539,34 +543,34 @@
               </div>
               <div class="flex gap-2 items-center">
                 <span class="badge badge-running" x-show="currentAgent && !sending" style="animation:fadeIn 0.2s">
-                  <span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--success);margin-right:2px"></span> Ready
+                  <span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--success);margin-right:2px"></span> <span x-text="t('chat_ready')"></span>
                 </span>
                 <span class="badge badge-suspended" x-show="sending" style="animation:fadeIn 0.2s">
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.5" style="animation:spin 1s linear infinite"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
-                  Generating...
+                  <span x-text="t('chat_generating')"></span>
                 </span>
-                <span class="queue-badge" x-show="messageQueue.length > 0" x-text="'+' + messageQueue.length + ' queued'"></span>
+                <span class="queue-badge" x-show="messageQueue.length > 0" x-text="t('chat_queued_count', { count: messageQueue.length })"></span>
                 <!-- Session switcher -->
                 <div style="position:relative">
-                  <button class="btn btn-ghost btn-sm" @click="sessionsOpen = !sessionsOpen" title="Sessions" style="position:relative">
+                  <button class="btn btn-ghost btn-sm" @click="sessionsOpen = !sessionsOpen" :title="t('chat_sessions')" style="position:relative">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8"/><path d="M12 17v4"/></svg>
                     <span class="session-count-badge" x-show="sessions.length > 1" x-text="sessions.length"></span>
                   </button>
                   <div class="session-dropdown" x-show="sessionsOpen" @click.outside="sessionsOpen = false" x-transition>
                     <div class="session-dropdown-header">
-                      <span class="text-xs font-bold">Sessions</span>
-                      <button class="btn btn-ghost btn-sm" @click="createSession()" style="padding:2px 6px;font-size:11px">+ New</button>
+                      <span class="text-xs font-bold" x-text="t('chat_sessions')"></span>
+                      <button class="btn btn-ghost btn-sm" @click="createSession()" style="padding:2px 6px;font-size:11px" x-text="t('chat_new_session')"></button>
                     </div>
                     <template x-for="s in sessions" :key="s.session_id">
                       <div class="session-item" :class="{ active: s.active }" @click="if (!s.active) { switchSession(s.session_id); sessionsOpen = false; }">
                         <span class="session-dot" :class="s.active ? 'active' : ''"></span>
                         <div style="flex:1;min-width:0">
-                          <div class="text-xs font-bold truncate" x-text="s.label || 'Session ' + s.session_id.substring(0, 8)"></div>
-                          <div class="text-xs text-dim" x-text="s.message_count + ' messages'"></div>
+                          <div class="text-xs font-bold truncate" x-text="s.label || t('chat_session_fallback', { id: s.session_id.substring(0, 8) })"></div>
+                          <div class="text-xs text-dim" x-text="t('chat_message_count', { count: s.message_count })"></div>
                         </div>
                       </div>
                     </template>
-                    <div class="text-xs text-dim" style="padding:8px 12px;text-align:center" x-show="!sessions.length">No sessions</div>
+                    <div class="text-xs text-dim" style="padding:8px 12px;text-align:center" x-show="!sessions.length" x-text="t('chat_no_sessions')"></div>
                   </div>
                 </div>
                 <button class="btn btn-ghost btn-sm" @click="toggleSearch()" title="Search messages (Ctrl+F)">
@@ -582,8 +586,8 @@
             <!-- Search bar -->
             <div class="chat-search-bar" x-show="searchOpen" x-transition:enter="transition ease-out duration-150" x-transition:enter-start="opacity-0 transform -translate-y-2" x-transition:enter-end="opacity-100 transform translate-y-0">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-dim)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-              <input type="text" id="chat-search-input" x-model="searchQuery" x-ref="searchInput" placeholder="Search messages..." class="chat-search-input" @keydown.escape="toggleSearch()">
-              <span class="text-xs text-dim" x-show="searchQuery.trim()" x-text="filteredMessages.length + ' of ' + messages.length"></span>
+              <input type="text" id="chat-search-input" x-model="searchQuery" x-ref="searchInput" :placeholder="t('chat_search_messages')" class="chat-search-input" @keydown.escape="toggleSearch()">
+              <span class="text-xs text-dim" x-show="searchQuery.trim()" x-text="t('chat_search_count', { matched: filteredMessages.length, total: messages.length })"></span>
               <button class="btn btn-ghost btn-sm" @click="toggleSearch()" style="padding:2px 6px">&times;</button>
             </div>
 
@@ -593,8 +597,8 @@
               <template x-if="!currentAgent">
                 <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;text-align:center;padding:32px;opacity:0.8">
                   <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--text-dim)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:16px;opacity:0.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                  <h3 style="margin:0 0 8px;font-size:16px;font-weight:600">Select an agent to start chatting</h3>
-                  <p class="text-dim" style="font-size:13px;max-width:320px">Choose an agent from the sidebar or go to the Agents tab to create a new one.</p>
+                  <h3 style="margin:0 0 8px;font-size:16px;font-weight:600" x-text="t('chat_select_agent_title')"></h3>
+                  <p class="text-dim" style="font-size:13px;max-width:320px" x-text="t('chat_select_agent_desc')"></p>
                 </div>
               </template>
               <!-- Message list -->
@@ -608,7 +612,7 @@
                       <div class="message-body">
                         <!-- Copy button on hover -->
                         <div class="message-actions" x-show="msg.text && msg.text.trim() && !msg.thinking && !msg.streaming">
-                          <button class="message-action-btn" :class="{ copied: msg._copied }" @click="copyMessage(msg)" :title="msg._copied ? 'Copied!' : 'Copy message'">
+                          <button class="message-action-btn" :class="{ copied: msg._copied }" @click="copyMessage(msg)" :title="msg._copied ? t('common_copied') : t('chat_copy_message')">
                             <svg x-show="!msg._copied" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
                             <svg x-show="msg._copied" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
                           </button>
@@ -624,7 +628,7 @@
                           <div style="display:flex;flex-wrap:wrap;gap:8px;margin:8px 0">
                             <template x-for="img in msg.images" :key="img.file_id">
                               <a :href="'/api/uploads/' + img.file_id" target="_blank" style="display:block">
-                                <img :src="'/api/uploads/' + img.file_id" :alt="img.filename || 'uploaded image'" style="max-width:320px;max-height:320px;border-radius:8px;border:1px solid var(--border);cursor:pointer" loading="lazy">
+                                <img :src="'/api/uploads/' + img.file_id" :alt="img.filename || t('chat_uploaded_image')" style="max-width:320px;max-height:320px;border-radius:8px;border:1px solid var(--border);cursor:pointer" loading="lazy">
                               </a>
                             </template>
                           </div>
@@ -637,14 +641,14 @@
                               <template x-if="!tool.running && tool.is_error"><span class="tool-icon-err">&#10007;</span></template>
                               <span class="tool-card-icon" x-html="toolIcon(tool.name)"></span>
                               <span class="tool-card-name" x-text="tool.name"></span>
-                              <span class="text-xs text-dim" x-text="tool.running ? 'running...' : (tool.is_error ? 'error' : (tool.result ? (tool.result.length > 500 ? Math.round(tool.result.length/1024) + 'KB' : 'done') : 'done'))" style="margin-left:auto"></span>
+                              <span class="text-xs text-dim" x-text="tool.running ? t('chat_tool_running') : (tool.is_error ? t('chat_tool_error') : (tool.result ? (tool.result.length > 500 ? Math.round(tool.result.length/1024) + 'KB' : t('chat_tool_done')) : t('chat_tool_done')))" style="margin-left:auto"></span>
                               <span class="tool-expand-chevron" :style="tool.expanded ? 'transform:rotate(90deg)' : ''" style="transition:transform 0.15s">&#9654;</span>
                             </div>
                             <!-- Render generated images above the raw result -->
                             <div x-show="tool._imageUrls && tool._imageUrls.length" style="padding:8px 12px;display:flex;flex-wrap:wrap;gap:8px">
                               <template x-for="iurl in (tool._imageUrls || [])" :key="iurl">
                                 <a :href="iurl" target="_blank" style="display:block">
-                                  <img :src="iurl" alt="Generated image" style="max-width:320px;max-height:320px;border-radius:8px;border:1px solid var(--border);cursor:pointer" loading="lazy">
+                                  <img :src="iurl" :alt="t('chat_uploaded_image')" style="max-width:320px;max-height:320px;border-radius:8px;border:1px solid var(--border);cursor:pointer" loading="lazy">
                                 </a>
                               </template>
                             </div>
@@ -652,17 +656,17 @@
                             <div x-show="tool._audioFile" style="padding:8px 12px">
                               <div class="audio-player">
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
-                                <span class="text-xs" x-text="'Audio: ' + tool._audioFile.split('/').pop()"></span>
-                                <span class="text-xs text-dim" x-show="tool._audioDuration" x-text="'~' + Math.round((tool._audioDuration || 0) / 1000) + 's'"></span>
+                                <span class="text-xs" x-text="t('chat_audio_label', { file: tool._audioFile.split('/').pop() })"></span>
+                                <span class="text-xs text-dim" x-show="tool._audioDuration" x-text="t('chat_audio_duration', { seconds: Math.round((tool._audioDuration || 0) / 1000) })"></span>
                               </div>
                             </div>
                             <div class="tool-card-body" x-show="tool.expanded" x-transition:enter="transition ease-out duration-150" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100">
                               <div x-show="tool.input" style="margin-bottom:6px">
-                                <div class="tool-section-label">Input</div>
+                                <div class="tool-section-label" x-text="t('chat_tool_input')"></div>
                                 <pre class="tool-pre" x-text="formatToolJson(tool.input)"></pre>
                               </div>
                               <div x-show="tool.result">
-                                <div class="tool-section-label">Result <span class="text-xs text-muted" x-show="tool.result && tool.result.length > 200" x-text="'(' + tool.result.length + ' chars)'"></span></div>
+                                <div class="tool-section-label"><span x-text="t('chat_tool_result')"></span> <span class="text-xs text-muted" x-show="tool.result && tool.result.length > 200" x-text="t('chat_chars_count', { count: tool.result.length })"></span></div>
                                 <pre class="tool-pre" :class="{ 'tool-pre-error': tool.is_error, 'tool-pre-short': !tool.is_error && tool.result && tool.result.length < 100, 'tool-pre-medium': !tool.is_error && tool.result && tool.result.length >= 100 && tool.result.length < 500 }" x-text="formatToolJson(tool.result)"></pre>
                               </div>
                             </div>
@@ -681,7 +685,7 @@
 
               <!-- Drop zone overlay -->
               <div x-show="dragOver" style="position:absolute;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;background:var(--surface);opacity:0.92;border:2px dashed var(--accent);border-radius:8px;pointer-events:none">
-                <span style="font-size:16px;color:var(--accent);font-weight:600">Drop files here</span>
+                <span style="font-size:16px;color:var(--accent);font-weight:600" x-text="t('chat_drop_files')"></span>
               </div>
             </div>
 
@@ -710,7 +714,7 @@
               </div>
               <!-- Model autocomplete picker -->
               <div x-show="showModelPicker && filteredModelPicker.length" class="slash-menu" style="max-height:280px;overflow-y:auto">
-                <div class="text-xs text-dim" style="padding:4px 10px;border-bottom:1px solid var(--border)">Available models — pick one or keep typing</div>
+                <div class="text-xs text-dim" style="padding:4px 10px;border-bottom:1px solid var(--border)" x-text="t('chat_available_models')"></div>
                 <template x-for="(m, idx) in filteredModelPicker" :key="m.id">
                   <div class="slash-menu-item" :class="{ 'slash-active': idx === modelPickerIdx }" @click="pickModel(m.id)" @mouseenter="modelPickerIdx = idx">
                     <span class="font-bold" style="font-size:12px;font-family:var(--font-mono)" x-text="m.id"></span>
@@ -720,12 +724,12 @@
               </div>
               <!-- Input row -->
               <div class="input-row">
-                <button class="btn btn-ghost btn-sm" @click="$refs.fileInput.click()" title="Attach file" style="padding:6px 8px;flex-shrink:0">
+                <button class="btn btn-ghost btn-sm" @click="$refs.fileInput.click()" :title="t('chat_attach_file')" style="padding:6px 8px;flex-shrink:0">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
                 </button>
                 <input type="file" x-ref="fileInput" multiple accept="image/*,.txt,.pdf,.md,.json,.csv,.mp3,.wav,.ogg,.webm,.m4a,.flac" @change="addFiles($event.target.files); $event.target.value = ''" style="display:none">
                 <!-- Mic button -->
-                <button class="btn btn-ghost btn-sm" :class="{ 'btn-recording': recording }" @mousedown="startRecording()" @mouseup="stopRecording()" @mouseleave="if(recording) stopRecording()" title="Hold to record voice" style="padding:6px 8px;flex-shrink:0">
+                <button class="btn btn-ghost btn-sm" :class="{ 'btn-recording': recording }" @mousedown="startRecording()" @mouseup="stopRecording()" @mouseleave="if(recording) stopRecording()" :title="t('chat_hold_to_record')" style="padding:6px 8px;flex-shrink:0">
                   <svg x-show="!recording" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
                   <span x-show="recording" class="recording-dot"></span>
                 </button>
@@ -734,7 +738,7 @@
                   <span class="recording-dot"></span>
                   <span class="text-xs" style="color:var(--danger)" x-text="formatRecordingTime()"></span>
                 </div>
-                <textarea id="msg-input" rows="1" :placeholder="recording ? 'Recording... release to send' : 'Message OpenFang... (/ for commands)'"
+                <textarea id="msg-input" rows="1" :placeholder="recording ? t('chat_recording_placeholder') : t('chat_message_placeholder')"
                           @keydown.enter.prevent="if(!$event.shiftKey){if(showModelPicker && filteredModelPicker.length){pickModel(filteredModelPicker[modelPickerIdx].id)}else if(showSlashMenu && filteredSlashCommands.length){executeSlashCommand(filteredSlashCommands[slashIdx].cmd)}else{sendMessage()}}"
                           @keydown.escape="showSlashMenu = false; showModelPicker = false"
                           @keydown.arrow-up.prevent="if(showModelPicker){modelPickerIdx = Math.max(0, modelPickerIdx - 1)}else if(showSlashMenu){slashIdx = Math.max(0, slashIdx - 1)}"
@@ -749,7 +753,7 @@
                   </button>
                 </template>
                 <template x-if="sending">
-                  <button class="btn-stop" @click="stopAgent()" title="Stop generating">
+                  <button class="btn-stop" @click="stopAgent()" :title="t('chat_stop_generating')">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
                   </button>
                 </template>
@@ -761,22 +765,22 @@
                   <div style="position:relative" x-show="currentAgent" @click.outside="showModelSwitcher = false" @keydown.escape.window="showModelSwitcher = false">
                     <button class="model-switcher-btn" @click="toggleModelSwitcher()" :disabled="sending" title="Switch model (Ctrl+M)">
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
-                      <span class="model-switcher-label" x-text="modelDisplayName || 'Model'"></span>
+                      <span class="model-switcher-label" x-text="modelDisplayName || t('chat_model_label')"></span>
                       <svg class="model-switcher-chevron" :class="{'open': showModelSwitcher}" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
                     </button>
                     <!-- Dropdown -->
                     <div class="model-switcher-dropdown" x-show="showModelSwitcher" x-transition:enter="transition ease-out duration-150" x-transition:enter-start="opacity-0 transform translate-y-1" x-transition:enter-end="opacity-100 transform translate-y-0" x-transition:leave="transition ease-in duration-100" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0">
                       <div class="model-switcher-search">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;opacity:0.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                        <input id="model-switcher-search" type="text" x-model="modelSwitcherFilter" placeholder="Search models..." @keydown.escape.stop="showModelSwitcher = false" @keydown.arrow-down.prevent="modelSwitcherIdx = Math.min(modelSwitcherIdx + 1, filteredSwitcherModels.length - 1)" @keydown.arrow-up.prevent="modelSwitcherIdx = Math.max(modelSwitcherIdx - 1, 0)" @keydown.enter.prevent="filteredSwitcherModels[modelSwitcherIdx] && switchModel(filteredSwitcherModels[modelSwitcherIdx])">
+                        <input id="model-switcher-search" type="text" x-model="modelSwitcherFilter" :placeholder="t('chat_search_models')" @keydown.escape.stop="showModelSwitcher = false" @keydown.arrow-down.prevent="modelSwitcherIdx = Math.min(modelSwitcherIdx + 1, filteredSwitcherModels.length - 1)" @keydown.arrow-up.prevent="modelSwitcherIdx = Math.max(modelSwitcherIdx - 1, 0)" @keydown.enter.prevent="filteredSwitcherModels[modelSwitcherIdx] && switchModel(filteredSwitcherModels[modelSwitcherIdx])">
                       </div>
                       <div x-show="modelSwitching" style="display:flex;align-items:center;justify-content:center;padding:12px;gap:8px">
                         <div class="tool-card-spinner"></div>
-                        <span class="text-xs text-dim">Switching...</span>
+                        <span class="text-xs text-dim" x-text="t('chat_switching')"></span>
                       </div>
                       <div class="model-switcher-list" x-show="!modelSwitching">
                         <template x-if="groupedSwitcherModels.length === 0">
-                          <div style="padding:16px;text-align:center" class="text-xs text-dim">No models found</div>
+                          <div style="padding:16px;text-align:center" class="text-xs text-dim" x-text="t('chat_no_models_found')"></div>
                         </template>
                         <template x-for="group in groupedSwitcherModels" :key="group.provider">
                           <div>
@@ -803,12 +807,12 @@
                       </div>
                     </div>
                   </div>
-                  <span class="text-xs text-dim" x-text="tokenCount > 0 ? '~' + tokenCount + ' tokens' : (attachments.length ? attachments.length + ' file(s)' : '')"></span>
-                  <span class="queue-badge" x-show="messageQueue.length > 0" x-text="messageQueue.length + ' queued'"></span>
+                  <span class="text-xs text-dim" x-text="tokenCount > 0 ? t('chat_tokens_approx', { count: tokenCount }) : (attachments.length ? t('chat_files_count', { count: attachments.length }) : '')"></span>
+                  <span class="queue-badge" x-show="messageQueue.length > 0" x-text="t('chat_queue_count', { count: messageQueue.length })"></span>
                 </div>
                 <div class="tip-bar" x-show="currentTip && !sending">
                   <span class="text-xs" x-text="currentTip"></span>
-                  <button class="tip-bar-dismiss" @click="dismissTips()" title="Dismiss">&times;</button>
+                  <button class="tip-bar-dismiss" @click="dismissTips()" :title="t('chat_tip_dismiss')">&times;</button>
                 </div>
               </div>
             </div>
@@ -818,17 +822,17 @@
         <!-- MODE 2: Agent picker + Templates (no agent chatting) -->
         <div x-show="!activeChatAgent" class="chat-wrapper">
         <div class="page-header">
-          <h2>Chat</h2>
+          <h2 x-text="t('chat_page_title')"></h2>
           <div class="flex gap-2">
-            <button class="btn btn-ghost btn-sm" x-show="agents.length" @click="openSpawnWizard()">+ New Agent</button>
-            <button class="btn btn-danger btn-sm" x-show="agents.length > 1" @click="killAllAgents()">Stop All</button>
+            <button class="btn btn-ghost btn-sm" x-show="agents.length" @click="openSpawnWizard()" x-text="t('chat_new_agent')"></button>
+            <button class="btn btn-danger btn-sm" x-show="agents.length > 1" @click="killAllAgents()" x-text="t('chat_stop_all')"></button>
           </div>
         </div>
         <div class="page-body" style="overflow-y:auto;padding:24px">
 
           <!-- Running agents — click to chat -->
           <div x-show="agents.length" style="margin-bottom:28px">
-            <div class="text-sm font-bold mb-2" style="color:var(--text-dim);letter-spacing:0.5px;font-size:11px;text-transform:uppercase">Your Agents</div>
+            <div class="text-sm font-bold mb-2" style="color:var(--text-dim);letter-spacing:0.5px;font-size:11px;text-transform:uppercase" x-text="t('chat_your_agents')"></div>
             <div style="display:flex;flex-wrap:wrap;gap:10px">
               <template x-for="agent in agents" :key="agent.id">
                 <div class="agent-chip" @click="chatWithAgent(agent)" style="cursor:pointer;display:flex;align-items:center;gap:10px;padding:12px 18px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);transition:all 0.2s var(--ease-spring, ease);min-width:200px;box-shadow:var(--shadow-xs)" @mouseenter="$el.style.borderColor='var(--accent)';$el.style.transform='translateY(-2px)';$el.style.boxShadow='var(--shadow-md)'" @mouseleave="$el.style.borderColor='var(--border)';$el.style.transform='';$el.style.boxShadow='var(--shadow-xs)'">
@@ -848,7 +852,7 @@
 
           <!-- Quick-start templates — spawn + chat in one click -->
           <div>
-            <div class="text-sm font-bold mb-2" style="color:var(--text-dim);letter-spacing:0.5px;font-size:11px;text-transform:uppercase" x-text="agents.length ? 'Or Start a New Agent' : 'Start Chatting'"></div>
+            <div class="text-sm font-bold mb-2" style="color:var(--text-dim);letter-spacing:0.5px;font-size:11px;text-transform:uppercase" x-text="agents.length ? t('chat_or_start_new_agent') : t('chat_start_chatting')"></div>
             <div class="card-grid">
               <template x-for="t in builtinTemplates" :key="t.name">
                 <div class="card" style="cursor:pointer" @click="spawnBuiltin(t)">
@@ -877,45 +881,45 @@
                   <button class="modal-close" @click="showDetailModal = false">&times;</button>
                 </div>
                 <div class="tabs" style="margin-bottom:16px">
-                  <div class="tab" :class="{ active: detailTab === 'info' }" @click="detailTab = 'info'">Info</div>
-                  <div class="tab" :class="{ active: detailTab === 'files' }" @click="detailTab = 'files'; loadAgentFiles()">Files</div>
-                  <div class="tab" :class="{ active: detailTab === 'config' }" @click="detailTab = 'config'; loadToolFilters()">Config</div>
+                  <div class="tab" :class="{ active: detailTab === 'info' }" @click="detailTab = 'info'" x-text="t('agents_info')"></div>
+                  <div class="tab" :class="{ active: detailTab === 'files' }" @click="detailTab = 'files'; loadAgentFiles()" x-text="t('agents_files')"></div>
+                  <div class="tab" :class="{ active: detailTab === 'config' }" @click="detailTab = 'config'; loadToolFilters()" x-text="t('agents_config')"></div>
                 </div>
 
                 <!-- Tab: Info -->
                 <div x-show="detailTab === 'info'">
                   <div class="detail-grid">
-                    <div class="detail-row"><span class="detail-label">ID</span><span class="detail-value text-xs" x-text="detailAgent.id" style="word-break:break-all"></span></div>
-                    <div class="detail-row"><span class="detail-label">State</span><span class="badge" :class="'badge-' + detailAgent.state.toLowerCase()" x-text="detailAgent.state"></span></div>
-                    <div class="detail-row"><span class="detail-label">Mode</span>
+                    <div class="detail-row"><span class="detail-label" x-text="t('agents_id')"></span><span class="detail-value text-xs" x-text="detailAgent.id" style="word-break:break-all"></span></div>
+                    <div class="detail-row"><span class="detail-label" x-text="t('agents_state')"></span><span class="badge" :class="'badge-' + detailAgent.state.toLowerCase()" x-text="detailAgent.state"></span></div>
+                    <div class="detail-row"><span class="detail-label" x-text="t('agents_mode')"></span>
                       <select class="form-select" style="width:140px" :value="detailAgent.mode || 'full'" @change="setMode(detailAgent, $event.target.value)">
                         <option value="observe">Observe</option><option value="assist">Assist</option><option value="full">Full</option>
                       </select>
                     </div>
-                    <div class="detail-row" x-show="detailAgent.profile"><span class="detail-label">Profile</span><span class="detail-value" style="text-transform:capitalize" x-text="detailAgent.profile || '-'"></span></div>
-                    <div class="detail-row"><span class="detail-label">Provider</span><span class="detail-value" x-text="detailAgent.model_provider"></span></div>
-                    <div class="detail-row"><span class="detail-label">Model</span>
+                    <div class="detail-row" x-show="detailAgent.profile"><span class="detail-label" x-text="t('agents_profile')"></span><span class="detail-value" style="text-transform:capitalize" x-text="detailAgent.profile || '-'"></span></div>
+                    <div class="detail-row"><span class="detail-label" x-text="t('agents_provider')"></span><span class="detail-value" x-text="detailAgent.model_provider"></span></div>
+                    <div class="detail-row"><span class="detail-label" x-text="t('agents_model')"></span>
                       <template x-if="!editingModel">
                         <span>
                           <span class="detail-value" x-text="detailAgent.model_name"></span>
-                          <button class="btn btn-ghost btn-sm" style="margin-left:8px;padding:2px 8px;font-size:11px" @click="editingModel = true; newModelValue = detailAgent.model_provider + '/' + detailAgent.model_name">Change</button>
+                          <button class="btn btn-ghost btn-sm" style="margin-left:8px;padding:2px 8px;font-size:11px" @click="editingModel = true; newModelValue = detailAgent.model_provider + '/' + detailAgent.model_name" x-text="t('agents_change')"></button>
                         </span>
                       </template>
                       <template x-if="editingModel">
                         <span class="flex gap-1" style="align-items:center">
-                          <input class="form-input" style="width:240px;font-size:12px" x-model="newModelValue" placeholder="provider/model" @keydown.enter="changeModel()" @keydown.escape="editingModel = false">
-                          <button class="btn btn-primary btn-sm" @click="changeModel()" :disabled="modelSaving" style="padding:2px 10px">
-                            <span x-show="!modelSaving">Save</span><span x-show="modelSaving">...</span>
-                          </button>
-                          <button class="btn btn-ghost btn-sm" @click="editingModel = false" style="padding:2px 8px">Cancel</button>
+                            <input class="form-input" style="width:240px;font-size:12px" x-model="newModelValue" placeholder="provider/model" @keydown.enter="changeModel()" @keydown.escape="editingModel = false">
+                            <button class="btn btn-primary btn-sm" @click="changeModel()" :disabled="modelSaving" style="padding:2px 10px">
+                              <span x-show="!modelSaving" x-text="t('common_save')"></span><span x-show="modelSaving">...</span>
+                            </button>
+                            <button class="btn btn-ghost btn-sm" @click="editingModel = false" style="padding:2px 8px" x-text="t('common_cancel')"></button>
                         </span>
                       </template>
                     </div>
-                    <div class="detail-row"><span class="detail-label">Created</span><span class="detail-value" x-text="detailAgent.created_at ? new Date(detailAgent.created_at).toLocaleString() : '-'"></span></div>
+                    <div class="detail-row"><span class="detail-label" x-text="t('agents_created')"></span><span class="detail-value" x-text="detailAgent.created_at ? new Date(detailAgent.created_at).toLocaleString() : '-'"></span></div>
 
                     <!-- Fallback Model Chain -->
                     <div class="detail-row" style="align-items:flex-start">
-                      <span class="detail-label">Fallbacks</span>
+                      <span class="detail-label" x-text="t('agents_fallbacks')"></span>
                       <div style="flex:1">
                         <template x-if="detailAgent._fallbacks && detailAgent._fallbacks.length > 0">
                           <div>
@@ -928,110 +932,110 @@
                           </div>
                         </template>
                         <template x-if="!detailAgent._fallbacks || detailAgent._fallbacks.length === 0">
-                          <span class="text-dim" style="font-size:12px">None — add a fallback chain</span>
+                          <span class="text-dim" style="font-size:12px" x-text="t('agents_no_fallbacks')"></span>
                         </template>
                         <template x-if="!editingFallback">
-                          <button class="btn btn-ghost btn-sm" style="padding:2px 8px;font-size:11px;margin-top:4px" @click="editingFallback = true; newFallbackValue = ''">+ Add</button>
+                          <button class="btn btn-ghost btn-sm" style="padding:2px 8px;font-size:11px;margin-top:4px" @click="editingFallback = true; newFallbackValue = ''" x-text="t('agents_add')"></button>
                         </template>
                         <template x-if="editingFallback">
                           <div class="flex gap-1 mt-1" style="align-items:center">
                             <input class="form-input" style="width:220px;font-size:12px" x-model="newFallbackValue" placeholder="provider/model" @keydown.enter="addFallback()" @keydown.escape="editingFallback = false">
-                            <button class="btn btn-primary btn-sm" @click="addFallback()" style="padding:2px 10px;font-size:11px">Add</button>
-                            <button class="btn btn-ghost btn-sm" @click="editingFallback = false" style="padding:2px 8px;font-size:11px">Cancel</button>
+                            <button class="btn btn-primary btn-sm" @click="addFallback()" style="padding:2px 10px;font-size:11px" x-text="t('common_add')"></button>
+                            <button class="btn btn-ghost btn-sm" @click="editingFallback = false" style="padding:2px 8px;font-size:11px" x-text="t('common_cancel')"></button>
                           </div>
                         </template>
                       </div>
                     </div>
                   </div>
                   <div class="flex gap-2 mt-4">
-                    <button class="btn btn-primary" @click="chatWithAgent(detailAgent); showDetailModal = false">Chat</button>
-                    <button class="btn btn-ghost" @click="cloneAgent(detailAgent)">Clone</button>
-                    <button class="btn btn-ghost" @click="clearHistory(detailAgent)">Clear History</button>
-                    <button class="btn btn-danger" @click="killAgent(detailAgent)">Stop</button>
+                    <button class="btn btn-primary" @click="chatWithAgent(detailAgent); showDetailModal = false" x-text="t('agents_chat')"></button>
+                    <button class="btn btn-ghost" @click="cloneAgent(detailAgent)" x-text="t('agents_clone')"></button>
+                    <button class="btn btn-ghost" @click="clearHistory(detailAgent)" x-text="t('agents_clear_history')"></button>
+                    <button class="btn btn-danger" @click="killAgent(detailAgent)" x-text="t('common_stop')"></button>
                   </div>
                 </div>
 
                 <!-- Tab: Files -->
                 <div x-show="detailTab === 'files'">
-                  <div x-show="filesLoading" class="text-center text-dim" style="padding:24px">Loading files...</div>
+                  <div x-show="filesLoading" class="text-center text-dim" style="padding:24px" x-text="t('agents_loading_files')"></div>
                   <div x-show="!filesLoading && !editingFile">
                     <template x-for="file in agentFiles" :key="file.name">
                       <div class="file-list-item" @click="openFile(file)">
                         <span class="font-mono" style="font-size:13px" x-text="file.name"></span>
-                        <span class="text-xs text-dim" x-text="file.exists ? (file.size_bytes + ' bytes') : 'Not created'"></span>
+                        <span class="text-xs text-dim" x-text="file.exists ? (file.size_bytes + ' bytes') : t('agents_not_created')"></span>
                       </div>
                     </template>
-                    <div x-show="!agentFiles.length && !filesLoading" class="text-center text-dim" style="padding:24px">No workspace files found</div>
+                    <div x-show="!agentFiles.length && !filesLoading" class="text-center text-dim" style="padding:24px" x-text="t('agents_no_workspace_files')"></div>
                   </div>
                   <div x-show="editingFile">
                     <div class="flex justify-between items-center mb-2">
                       <span class="font-bold font-mono" x-text="editingFile"></span>
-                      <button class="btn btn-ghost btn-sm" @click="closeFileEditor()">&larr; Back</button>
+                      <button class="btn btn-ghost btn-sm" @click="closeFileEditor()">&larr; <span x-text="t('agents_back')"></span></button>
                     </div>
                     <textarea class="file-editor" x-model="fileContent" style="width:100%;height:280px;resize:vertical"></textarea>
                     <div class="flex gap-2 mt-2">
-                      <button class="btn btn-primary btn-sm" @click="saveFile()" :disabled="fileSaving"><span x-show="!fileSaving">Save</span><span x-show="fileSaving">Saving...</span></button>
-                      <button class="btn btn-ghost btn-sm" @click="closeFileEditor()">Cancel</button>
+                      <button class="btn btn-primary btn-sm" @click="saveFile()" :disabled="fileSaving"><span x-show="!fileSaving" x-text="t('common_save')"></span><span x-show="fileSaving" x-text="t('agents_loading_save')"></span></button>
+                      <button class="btn btn-ghost btn-sm" @click="closeFileEditor()" x-text="t('common_cancel')"></button>
                     </div>
                   </div>
                 </div>
 
                 <!-- Tab: Config (inline editable) -->
                 <div x-show="detailTab === 'config'">
-                  <div class="form-group"><label>Name</label><input class="form-input" x-model="configForm.name"></div>
-                  <div class="form-group"><label>System Prompt</label><textarea class="form-textarea" x-model="configForm.system_prompt" style="height:80px"></textarea></div>
-                  <div class="form-group"><label>Emoji</label>
+                  <div class="form-group"><label x-text="t('agents_name_label')"></label><input class="form-input" x-model="configForm.name"></div>
+                  <div class="form-group"><label x-text="t('agents_system_prompt')"></label><textarea class="form-textarea" x-model="configForm.system_prompt" style="height:80px"></textarea></div>
+                  <div class="form-group"><label x-text="t('agents_emoji')"></label>
                     <div class="emoji-grid">
                       <template x-for="em in emojiOptions" :key="em">
                         <button class="emoji-grid-item" :class="{ active: configForm.emoji === em }" @click="configForm.emoji = em" x-text="em"></button>
                       </template>
                     </div>
                   </div>
-                  <div class="form-group"><label>Color</label><input type="color" x-model="configForm.color" style="width:48px;height:32px;border:none;cursor:pointer;background:none"></div>
-                  <div class="form-group"><label>Archetype</label>
+                  <div class="form-group"><label x-text="t('agents_color')"></label><input type="color" x-model="configForm.color" style="width:48px;height:32px;border:none;cursor:pointer;background:none"></div>
+                  <div class="form-group"><label x-text="t('agents_archetype')"></label>
                     <select class="form-select" x-model="configForm.archetype">
-                      <option value="">None</option>
+                      <option value="" x-text="t('common_none')"></option>
                       <template x-for="a in archetypeOptions" :key="a"><option :value="a.toLowerCase()" x-text="a"></option></template>
                     </select>
                   </div>
-                  <div class="form-group"><label>Vibe</label>
+                  <div class="form-group"><label x-text="t('agents_vibe')"></label>
                     <select class="form-select" x-model="configForm.vibe">
-                      <option value="">None</option>
+                      <option value="" x-text="t('common_none')"></option>
                       <option value="professional">Professional</option><option value="friendly">Friendly</option>
                       <option value="technical">Technical</option><option value="creative">Creative</option>
                       <option value="concise">Concise</option><option value="mentor">Mentor</option>
                     </select>
                   </div>
                   <button class="btn btn-primary mt-4" @click="saveConfig()" :disabled="configSaving">
-                    <span x-show="!configSaving">Save Config</span><span x-show="configSaving">Saving...</span>
+                    <span x-show="!configSaving" x-text="t('agents_save_config')"></span><span x-show="configSaving" x-text="t('agents_loading_save')"></span>
                   </button>
 
                   <!-- Tool Filters -->
                   <div class="mt-4" style="border-top:1px solid var(--border);padding-top:16px">
-                    <h4 style="margin-bottom:8px;font-size:13px">Tool Filters</h4>
-                    <p class="text-xs text-dim" style="margin-bottom:12px">Allowlist: only these tools available (empty = all). Blocklist: these tools excluded.</p>
+                    <h4 style="margin-bottom:8px;font-size:13px" x-text="t('agents_tool_filters')"></h4>
+                    <p class="text-xs text-dim" style="margin-bottom:12px" x-text="t('agents_tool_filters_desc')"></p>
                     <div class="form-group">
-                      <label style="font-size:12px">Allowlist <span class="text-dim" x-text="'(' + toolFilters.tool_allowlist.length + ')'"></span></label>
+                      <label style="font-size:12px"><span x-text="t('agents_allowlist')"></span> <span class="text-dim" x-text="'(' + toolFilters.tool_allowlist.length + ')'"></span></label>
                       <div class="flex flex-wrap gap-1 mb-1">
                         <template x-for="(t, i) in toolFilters.tool_allowlist" :key="'al-'+i">
                           <span class="badge" style="cursor:pointer" @click="removeAllowTool(t)" :title="'Click to remove ' + t"><span x-text="t"></span> &times;</span>
                         </template>
                       </div>
                       <div class="flex gap-1">
-                        <input class="form-input" style="font-size:12px;flex:1" x-model="newAllowTool" placeholder="tool name" @keydown.enter="addAllowTool()">
-                        <button class="btn btn-ghost btn-sm" @click="addAllowTool()">Add</button>
+                        <input class="form-input" style="font-size:12px;flex:1" x-model="newAllowTool" :placeholder="t('agents_tool_name_placeholder')" @keydown.enter="addAllowTool()">
+                        <button class="btn btn-ghost btn-sm" @click="addAllowTool()" x-text="t('common_add')"></button>
                       </div>
                     </div>
                     <div class="form-group">
-                      <label style="font-size:12px">Blocklist <span class="text-dim" x-text="'(' + toolFilters.tool_blocklist.length + ')'"></span></label>
+                      <label style="font-size:12px"><span x-text="t('agents_blocklist')"></span> <span class="text-dim" x-text="'(' + toolFilters.tool_blocklist.length + ')'"></span></label>
                       <div class="flex flex-wrap gap-1 mb-1">
                         <template x-for="(t, i) in toolFilters.tool_blocklist" :key="'bl-'+i">
                           <span class="badge badge-danger" style="cursor:pointer" @click="removeBlockTool(t)" :title="'Click to remove ' + t"><span x-text="t"></span> &times;</span>
                         </template>
                       </div>
                       <div class="flex gap-1">
-                        <input class="form-input" style="font-size:12px;flex:1" x-model="newBlockTool" placeholder="tool name" @keydown.enter="addBlockTool()">
-                        <button class="btn btn-ghost btn-sm" @click="addBlockTool()">Add</button>
+                        <input class="form-input" style="font-size:12px;flex:1" x-model="newBlockTool" :placeholder="t('agents_tool_name_placeholder')" @keydown.enter="addBlockTool()">
+                        <button class="btn btn-ghost btn-sm" @click="addBlockTool()" x-text="t('common_add')"></button>
                       </div>
                     </div>
                   </div>
@@ -1045,24 +1049,24 @@
             <div class="modal-overlay" @click.self="showSpawnModal = false" @keydown.escape.window="showSpawnModal = false">
               <div class="modal" style="max-width:560px">
                 <div class="modal-header">
-                  <h3>Create Agent</h3>
+                  <h3 x-text="t('agents_create_title')"></h3>
                   <button class="modal-close" @click="showSpawnModal = false">&times;</button>
                 </div>
 
                 <!-- Wizard / TOML toggle -->
                 <div class="tabs" style="margin-bottom:12px">
-                  <div class="tab" :class="{ active: spawnMode === 'wizard' }" @click="spawnMode = 'wizard'">Wizard</div>
-                  <div class="tab" :class="{ active: spawnMode === 'toml' }" @click="spawnMode = 'toml'">Raw TOML</div>
+                  <div class="tab" :class="{ active: spawnMode === 'wizard' }" @click="spawnMode = 'wizard'" x-text="t('agents_wizard')"></div>
+                  <div class="tab" :class="{ active: spawnMode === 'toml' }" @click="spawnMode = 'toml'" x-text="t('agents_raw_toml')"></div>
                 </div>
 
                 <!-- Raw TOML mode (unchanged) -->
                 <div x-show="spawnMode === 'toml'">
                   <div class="form-group">
-                    <label>Agent Manifest (TOML)</label>
+                    <label x-text="t('agents_manifest_label')"></label>
                     <textarea class="form-textarea" style="height:200px;font-size:11px" x-model="spawnToml" placeholder='name = "my-agent"&#10;module = "builtin:chat"&#10;[model]&#10;provider = "groq"&#10;model = "llama-3.3-70b-versatile"&#10;system_prompt = "You are helpful."'></textarea>
                   </div>
                   <button class="btn btn-primary btn-block mt-4" @click="spawnAgent()" :disabled="spawning">
-                    <span x-show="!spawning">Spawn Agent</span><span x-show="spawning">Spawning...</span>
+                    <span x-show="!spawning" x-text="t('agents_spawn_agent')"></span><span x-show="spawning" x-text="t('agents_toml_spawning')"></span>
                   </button>
                 </div>
 
@@ -1080,7 +1084,7 @@
                   <!-- Step 1: Name + Identity -->
                   <div x-show="spawnStep === 1">
                     <div class="form-group">
-                      <label>Agent Name</label>
+                      <label x-text="t('agents_agent_name')"></label>
                       <input class="form-input" x-model="spawnForm.name" placeholder="my-agent" @keydown.enter="nextStep()">
                     </div>
                     <div class="form-group">
@@ -1281,7 +1285,7 @@
         <template x-if="wfTab === 'list'">
         <div x-data="workflowsPage">
         <div class="page-body" x-init="loadWorkflows()">
-          <div x-show="loading" class="loading-state"><div class="spinner"></div><span>Loading workflows...</span></div>
+          <div x-show="loading" class="loading-state"><div class="spinner"></div><span x-text="t('workflows_loading')"></span></div>
           <div x-show="!loading && loadError" class="error-state">
             <span class="error-icon">!</span>
             <p x-text="loadError"></p>
@@ -1289,15 +1293,14 @@
           </div>
           <div x-show="!loading && !loadError">
           <div class="card mb-4" style="border-left:3px solid var(--accent)">
-            <div class="font-bold" style="font-size:13px;margin-bottom:4px">What are Workflows?</div>
+            <div class="font-bold" style="font-size:13px;margin-bottom:4px" x-text="t('workflows_intro_title')"></div>
             <div class="text-sm text-dim" style="line-height:1.6">
-              Workflows chain multiple agents into automated pipelines. Each step runs an agent with a prompt template,
-              passing output from one step as input to the next. Steps can run sequentially, fan out in parallel, loop, or branch conditionally.
-              <br><span style="margin-top:4px;display:inline-block">Try the <strong style="color:var(--accent);cursor:pointer" @click="$dispatch('wf-switch-tab','builder')">Visual Builder</strong> to drag and drop workflow steps.</span>
+              <span x-text="t('workflows_intro_desc_1')"></span>
+              <br><span style="margin-top:4px;display:inline-block"><span x-text="t('common_try') || 'Try'"></span> <strong style="color:var(--accent);cursor:pointer" @click="$dispatch('wf-switch-tab','builder')" x-text="t('workflows_visual_builder')"></strong> <span x-text="t('workflows_drag_drop_tail') || 'to drag and drop workflow steps.'"></span></span>
             </div>
           </div>
           <div class="flex gap-2 mb-4">
-            <button class="btn btn-primary btn-sm" @click="showCreateModal = true">+ New Workflow</button>
+            <button class="btn btn-primary btn-sm" @click="showCreateModal = true" x-text="t('workflows_new')"></button>
           </div>
           <div class="table-wrap" x-show="workflows.length">
             <table>
@@ -1321,9 +1324,9 @@
             <div class="empty-state-icon">
               <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3v12M18 9a9 9 0 0 1-9 9"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/></svg>
             </div>
-            <h3>No workflows yet</h3>
-            <p>Chain multiple agents into automated pipelines with branching, fan-out, and loops.</p>
-            <button class="btn btn-primary" @click="showCreateModal = true">Create Workflow</button>
+            <h3 x-text="t('workflows_empty')"></h3>
+            <p x-text="t('workflows_empty_desc')"></p>
+            <button class="btn btn-primary" @click="showCreateModal = true" x-text="t('overview_create_workflow')"></button>
           </div>
           </div>
           <!-- Create modal -->
@@ -1467,7 +1470,7 @@
                       <div class="form-group">
                         <label class="text-xs">Agent</label>
                         <select class="form-select" x-model="selectedNode.config.agent_name" style="font-size:11px">
-                          <option value="">Select agent...</option>
+                          <option value="" x-text="t('sessions_memory_select_agent')"></option>
                           <template x-for="a in agents" :key="a.id || a.name">
                             <option :value="a.name" x-text="a.name"></option>
                           </template>
@@ -1591,17 +1594,17 @@
             Scheduled Jobs <span class="badge badge-dim" x-show="jobs.length" x-text="jobCount() + '/' + jobs.length + ' active'" style="margin-left:4px"></span>
           </div>
           <div class="tab" role="tab" :class="{ active: tab === 'triggers' }" @click="tab = 'triggers'; if (!triggers.length && !trigLoading) loadTriggers()">
-            Event Triggers <span class="badge badge-dim" x-show="triggers.length" x-text="triggers.length" style="margin-left:4px"></span>
+            <span x-text="t('scheduler_tab_event_triggers')"></span> <span class="badge badge-dim" x-show="triggers.length" x-text="triggers.length" style="margin-left:4px"></span>
           </div>
           <div class="tab" :class="{ active: tab === 'history' }" @click="tab = 'history'; loadHistory()">
-            Run History
+            <span x-text="t('scheduler_tab_run_history')"></span>
           </div>
         </div>
         <div class="page-body" x-init="loadData()">
 
           <!-- ── TAB: Scheduled Jobs ── -->
           <div x-show="tab === 'jobs'">
-            <div x-show="loading" class="loading-state"><div class="spinner"></div><span>Loading scheduled jobs...</span></div>
+            <div x-show="loading" class="loading-state"><div class="spinner"></div><span x-text="t('scheduler_loading')"></span></div>
             <div x-show="!loading && loadError" class="error-state">
               <span class="error-icon">!</span>
               <p x-text="loadError"></p>
@@ -1610,12 +1613,10 @@
             <div x-show="!loading && !loadError">
               <!-- Explainer -->
               <div class="card mb-4" style="border-left:3px solid var(--accent)">
-                <div class="font-bold" style="font-size:13px;margin-bottom:4px">Scheduled Jobs</div>
+                <div class="font-bold" style="font-size:13px;margin-bottom:4px" x-text="t('scheduler_intro_title')"></div>
                 <div class="text-sm text-dim" style="line-height:1.6">
-                  Create cron-based scheduled jobs that send messages to agents on a recurring schedule.
-                  Use cron expressions like <code style="color:var(--accent)">*/5 * * * *</code> (every 5 min) or
-                  <code style="color:var(--accent)">0 9 * * 1-5</code> (weekdays at 9am). You can also run any job
-                  manually with the "Run Now" button.
+                  <span x-text="t('scheduler_intro_desc_1')"></span>
+                  <span x-text="t('scheduler_intro_desc_2', { cron1: '*/5 * * * *', cron2: '0 9 * * 1-5' })"></span>
                 </div>
               </div>
 
@@ -1668,9 +1669,9 @@
 
               <!-- Empty State -->
               <div class="empty-state" x-show="!jobs.length">
-                <h4>No scheduled jobs</h4>
-                <p class="hint">Create a cron job to run agents on a recurring schedule. Jobs are stored persistently and survive restarts.</p>
-                <button class="btn btn-primary mt-4" @click="showCreateForm = true">+ Create Scheduled Job</button>
+                <h4 x-text="t('scheduler_empty')"></h4>
+                <p class="hint" x-text="t('scheduler_empty_desc')"></p>
+                <button class="btn btn-primary mt-4" @click="showCreateForm = true" x-text="t('scheduler_create_button')"></button>
               </div>
             </div>
 
@@ -1739,7 +1740,7 @@
 
           <!-- ── TAB: Event Triggers ── -->
           <div x-show="tab === 'triggers'">
-            <div x-show="trigLoading" class="loading-state"><div class="spinner"></div><span>Loading triggers...</span></div>
+            <div x-show="trigLoading" class="loading-state"><div class="spinner"></div><span x-text="t('scheduler_loading_triggers')"></span></div>
             <div x-show="!trigLoading && trigLoadError" class="error-state">
               <span class="error-icon">!</span>
               <p x-text="trigLoadError"></p>
@@ -1747,11 +1748,11 @@
             </div>
             <div x-show="!trigLoading && !trigLoadError">
               <div class="card mb-4" style="border-left:3px solid var(--accent)">
-                <div class="font-bold" style="font-size:13px;margin-bottom:4px">Event Triggers</div>
+                <div class="font-bold" style="font-size:13px;margin-bottom:4px" x-text="t('scheduler_tab_event_triggers')"></div>
                 <div class="text-sm text-dim" style="line-height:1.6">
-                  Event triggers fire agents in response to system events (agent lifecycle, memory updates, custom events).
-                  Create and manage triggers on the <a href="#workflows" style="color:var(--accent)">Workflows</a> page.
-                  This view shows all active triggers for monitoring.
+                  <span x-text="t('scheduler_triggers_desc_1')"></span>
+                  <a href="#workflows" style="color:var(--accent)" x-text="t('nav_workflows')"></a>
+                  <span x-text="t('scheduler_triggers_desc_2')"></span>
                 </div>
               </div>
               <div class="table-wrap" x-show="triggers.length">
@@ -1777,21 +1778,23 @@
                 </table>
               </div>
               <div class="empty-state" x-show="!triggers.length">
-                <h4>No event triggers</h4>
-                <p class="hint">Create event triggers on the <a href="#workflows" style="color:var(--accent)">Workflows page</a> to fire agents in response to system events.</p>
+                <h4 x-text="t('scheduler_no_event_triggers')"></h4>
+                <p class="hint">
+                  <span x-text="t('scheduler_no_event_triggers_desc_1')"></span>
+                  <a href="#workflows" style="color:var(--accent)" x-text="t('scheduler_no_event_triggers_desc_link')"></a>
+                  <span x-text="t('scheduler_no_event_triggers_desc_2')"></span>
+                </p>
               </div>
             </div>
           </div>
 
           <!-- ── TAB: Run History ── -->
           <div x-show="tab === 'history'">
-            <div x-show="historyLoading" class="loading-state"><div class="spinner"></div><span>Loading run history...</span></div>
+            <div x-show="historyLoading" class="loading-state"><div class="spinner"></div><span x-text="t('scheduler_loading_run_history')"></span></div>
             <div x-show="!historyLoading">
               <div class="card mb-4" style="border-left:3px solid var(--accent)">
-                <div class="font-bold" style="font-size:13px;margin-bottom:4px">Run History</div>
-                <div class="text-sm text-dim" style="line-height:1.6">
-                  Recent executions of scheduled jobs and event trigger fires. History is aggregated from schedule run counts and trigger fire counts.
-                </div>
+                <div class="font-bold" style="font-size:13px;margin-bottom:4px" x-text="t('scheduler_tab_run_history')"></div>
+                <div class="text-sm text-dim" style="line-height:1.6" x-text="t('scheduler_run_history_desc')"></div>
               </div>
               <div class="table-wrap" x-show="history.length">
                 <table>
@@ -1810,8 +1813,8 @@
                 </table>
               </div>
               <div class="empty-state" x-show="!history.length">
-                <h4>No run history yet</h4>
-                <p class="hint">Run history will appear here after scheduled jobs or triggers execute.</p>
+                <h4 x-text="t('scheduler_no_run_history')"></h4>
+                <p class="hint" x-text="t('scheduler_no_run_history_desc')"></p>
               </div>
             </div>
           </div>
@@ -1894,7 +1897,7 @@
                 </div>
 
                 <!-- 3-step progress indicator (non-QR channels only) -->
-                <div class="channel-steps" x-show="!isQrChannel()">
+                <div class="channel-steps" x-show="!isQrChannel() && !isShortCodeChannel()">
                   <div class="channel-step-item">
                     <div class="channel-step-num" :class="{ active: setupStep === 1, done: setupStep > 1 }">
                       <span x-show="setupStep <= 1">1</span><span x-show="setupStep > 1">&#10003;</span>
@@ -1918,7 +1921,7 @@
                 </div>
 
                 <!-- Ready panel (step 3) for non-QR channels -->
-                <div x-show="!isQrChannel() && setupStep === 3 && testPassed" class="ready-panel">
+                <div x-show="!isQrChannel() && !isShortCodeChannel() && setupStep === 3 && testPassed" class="ready-panel">
                   <div class="ready-panel-icon">&#10003;</div>
                   <div class="ready-panel-title" x-text="setupModal.display_name + ' is ready!'"></div>
                   <div class="ready-panel-desc">
@@ -1986,6 +1989,68 @@
                               x-text="testing[setupModal.name] ? 'Testing...' : 'Test Connection'">
                       </button>
                       <button class="btn btn-ghost" style="color:var(--red,#ef4444)" x-show="setupModal.configured" @click="removeChannel()">Remove</button>
+                    </div>
+                  </div>
+                </template>
+
+                <!-- ═══ SHORT CODE FLOW (WeChat customer service) ═══ -->
+                <template x-if="isShortCodeChannel()">
+                  <div>
+                    <div x-show="shortCode.loading" style="text-align:center;padding:2rem 0">
+                      <div class="spinner"></div>
+                      <p class="text-sm text-dim mt-2">正在生成绑定短码...</p>
+                    </div>
+
+                    <div x-show="!shortCode.loading && shortCode.error" style="padding:1rem 0">
+                      <div style="background:var(--bg-secondary,#1a1a2e);border-radius:8px;padding:1.25rem;text-align:center">
+                        <div style="font-size:2rem;margin-bottom:0.5rem;opacity:0.5">&#9888;</div>
+                        <p class="text-sm" style="color:var(--red,#ef4444)" x-text="shortCode.error"></p>
+                      </div>
+                    </div>
+
+                    <div x-show="!shortCode.loading && !shortCode.error">
+                      <div style="background:linear-gradient(145deg,#f8fffb,#ecfff4);border:1px solid #b9efd0;border-radius:14px;padding:1rem;text-align:center;box-shadow:0 8px 20px rgba(22,163,74,0.08)">
+                        <p style="font-size:0.72rem;color:#2b6d44;font-weight:600;letter-spacing:0.08em">设备 ID</p>
+                        <p style="font-size:0.78rem;color:#1f2937;word-break:break-all;margin-top:0.2rem" x-text="shortCode.deviceId || '-'"></p>
+                        <template x-if="shortCode.code && !shortCode.isBound">
+                          <div style="margin-top:0.9rem">
+                            <p style="font-size:0.8rem;color:#14532d;font-weight:600">绑定短码</p>
+                            <p style="font-size:2.5rem;font-weight:800;letter-spacing:0.2em;color:#0f172a;line-height:1.1;margin-top:0.2rem" x-text="shortCode.code"></p>
+                            <p style="font-size:0.85rem;color:#14532d;margin-top:0.3rem" x-show="shortCode.expiresIn !== null">剩余 <span style="font-weight:700" x-text="shortCode.expiresIn"></span> 秒</p>
+                          </div>
+                        </template>
+                        <template x-if="shortCode.isBound">
+                          <div style="margin-top:0.9rem">
+                            <div style="font-size:2rem;margin-bottom:0.2rem;color:#15803d">&#10003;</div>
+                            <p class="text-sm" style="font-weight:700;color:#14532d">已绑定</p>
+                            <p class="text-xs text-dim" x-show="shortCode.binding && shortCode.binding.external_userid">external_userid: <span x-text="shortCode.binding.external_userid"></span></p>
+                          </div>
+                        </template>
+                      </div>
+
+                      <div style="text-align:center;margin-top:1rem">
+                        <div style="display:inline-block;background:#fff;padding:0.6rem;border-radius:12px;border:1px solid #d1d5db">
+                          <img src="/wxkf.jpg" alt="微信客服二维码" style="width:220px;height:220px;object-fit:cover;border-radius:8px">
+                        </div>
+                        <p style="font-size:0.78rem;color:#4b5563;margin-top:0.45rem">微信扫码进入客服会话后，发送上方短码完成绑定</p>
+                      </div>
+                      <div x-show="shortCode.qrImageUrl && shortCode.qrImageUrl !== '/wxkf.jpg'" style="text-align:center;margin-top:0.6rem">
+                        <p class="text-xs text-dim">服务端二维码（可选）</p>
+                        <img :src="shortCode.qrImageUrl" alt="Server QR" style="max-width:140px;border-radius:8px;border:1px solid #d1d5db">
+                      </div>
+
+                      <ol style="text-align:left;font-size:0.85rem;margin:1rem 0;padding-left:1.5rem;opacity:0.8">
+                        <template x-for="(step, i) in setupModal.setup_steps || []" :key="i">
+                          <li x-text="step" style="margin-bottom:0.25rem"></li>
+                        </template>
+                      </ol>
+                      <p class="text-xs text-dim" x-text="shortCode.message"></p>
+
+                      <div class="flex gap-2 mt-4" style="flex-wrap:wrap;justify-content:center">
+                        <button class="btn btn-ghost" @click="startShortCode()">重新生成短码</button>
+                        <button class="btn btn-ghost" x-show="shortCode.deviceId" @click="pollShortCode()">刷新状态</button>
+                        <button class="btn btn-ghost" style="color:var(--red,#ef4444)" x-show="shortCode.deviceId" @click="unbindShortCode()">解绑</button>
+                      </div>
                     </div>
                   </div>
                 </template>
@@ -2090,18 +2155,18 @@
     <!-- Page: Skills -->
     <template x-if="page === 'skills'">
       <div x-data="skillsPage">
-        <div class="page-header"><h2>Skills</h2></div>
+        <div class="page-header"><h2 x-text="t('nav_skills')"></h2></div>
         <div class="page-body" x-init="loadSkills()">
           <div class="info-card">
-            <h4>Skills &amp; Ecosystem</h4>
-            <p>Skills extend your agents with new capabilities. OpenFang supports the <strong>OpenClaw/ClawHub</strong> ecosystem (3,000+ community skills) plus local skills.</p>
+            <h4 x-text="t('skills_ecosystem_title')"></h4>
+            <p x-text="t('skills_ecosystem_desc')"></p>
             <ul>
-              <li><strong>Prompt-only</strong> &mdash; inject context and instructions into the agent's system prompt (most ClawHub skills)</li>
-              <li><strong>Python / Node.js</strong> &mdash; executable tools that agents can call during conversations</li>
-              <li><strong>MCP Servers</strong> &mdash; external tools via Model Context Protocol (GitHub, filesystem, databases, etc.)</li>
+              <li><strong x-text="t('skills_prompt_only')"></strong> &mdash; <span x-text="t('skills_prompt_only_desc')"></span></li>
+              <li><strong x-text="t('skills_python_node')"></strong> &mdash; <span x-text="t('skills_python_node_desc')"></span></li>
+              <li><strong x-text="t('skills_mcp_servers')"></strong> &mdash; <span x-text="t('skills_mcp_servers_desc')"></span></li>
             </ul>
           </div>
-          <div x-show="loading" class="loading-state"><div class="spinner"></div><span>Loading skills...</span></div>
+          <div x-show="loading" class="loading-state"><div class="spinner"></div><span x-text="t('skills_loading')"></span></div>
           <div x-show="!loading && loadError" class="error-state">
             <span class="error-icon">!</span>
             <p x-text="loadError"></p>
@@ -2115,8 +2180,8 @@
               Installed <span class="badge badge-dim" x-show="skills.length" x-text="skills.length" style="margin-left:4px"></span>
             </div>
             <div class="tab" :class="{ active: tab === 'clawhub' }" @click="tab = 'clawhub'; if (!clawhubBrowseResults.length && !clawhubSearch) browseClawHub('trending')">ClawHub</div>
-            <div class="tab" :class="{ active: tab === 'mcp' }" @click="tab = 'mcp'; loadMcpServers()">MCP Servers</div>
-            <div class="tab" :class="{ active: tab === 'create' }" @click="tab = 'create'">Quick Start</div>
+            <div class="tab" :class="{ active: tab === 'mcp' }" @click="tab = 'mcp'; loadMcpServers()" x-text="t('skills_mcp_servers')"></div>
+            <div class="tab" :class="{ active: tab === 'create' }" @click="tab = 'create'" x-text="t('skills_quick_start')"></div>
           </div>
 
           <!-- TAB: Installed Skills -->
@@ -2148,11 +2213,11 @@
               <div class="empty-state-icon">
                 <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 18 6-6-6-6M8 6l-6 6 6 6"/></svg>
               </div>
-              <h3>No skills installed</h3>
-              <p>Skills add new capabilities to your agents. Browse ClawHub for 3,000+ community skills or create your own.</p>
+              <h3 x-text="t('skills_no_skills_installed')"></h3>
+              <p x-text="t('skills_no_skills_desc')"></p>
               <div class="flex gap-2">
-                <button class="btn btn-primary" @click="tab = 'clawhub'; if (!clawhubBrowseResults.length) browseClawHub('trending')">Browse ClawHub</button>
-                <button class="btn btn-ghost" @click="tab = 'create'">Quick Start</button>
+                <button class="btn btn-primary" @click="tab = 'clawhub'; if (!clawhubBrowseResults.length) browseClawHub('trending')" x-text="t('Browse ClawHub')"></button>
+                <button class="btn btn-ghost" @click="tab = 'create'" x-text="t('Quick Start')"></button>
               </div>
             </div>
           </div>
@@ -2258,32 +2323,32 @@
           <!-- TAB: MCP Servers -->
           <div x-show="tab === 'mcp'">
             <div class="info-card">
-              <h4>MCP Servers (Model Context Protocol)</h4>
-              <p>MCP servers provide external tools to your agents &mdash; GitHub, filesystem, databases, APIs, and more. OpenFang is compatible with all OpenClaw MCP servers.</p>
-              <p class="mt-2" style="font-size:0.8rem;color:var(--text-dim)">Configure MCP servers in your <code>config.toml</code> under <code>[mcp_servers]</code>.</p>
+              <h4 x-text="t('skills_mcp_title')"></h4>
+              <p x-text="t('skills_mcp_desc')"></p>
+              <p class="mt-2" style="font-size:0.8rem;color:var(--text-dim)" x-text="t('skills_mcp_config_hint')"></p>
             </div>
-            <div x-show="mcpLoading" class="loading-state"><div class="spinner"></div><span>Loading MCP servers...</span></div>
+            <div x-show="mcpLoading" class="loading-state"><div class="spinner"></div><span x-text="t('skills_mcp_loading')"></span></div>
             <div x-show="!mcpLoading">
               <!-- Connected servers -->
               <div x-show="mcpServers.total_connected > 0" class="mb-4">
-                <div class="text-sm font-bold mb-2" style="color:var(--text-dim);letter-spacing:0.5px">CONNECTED SERVERS</div>
+                <div class="text-sm font-bold mb-2" style="color:var(--text-dim);letter-spacing:0.5px" x-text="t('skills_mcp_connected_servers')"></div>
                 <div class="card-grid">
                   <template x-for="srv in mcpServers.connected" :key="srv.name">
                     <div class="card">
                       <div class="flex justify-between items-center mb-2">
                         <div class="card-header" style="margin:0" x-text="srv.name"></div>
-                        <span class="badge badge-success">Connected</span>
+                        <span class="badge badge-success" x-text="t('skills_mcp_connected')"></span>
                       </div>
-                      <div class="card-meta" x-text="srv.tools_count + ' tool(s) available'"></div>
+                      <div class="card-meta" x-text="t('skills_mcp_tools_available', { count: srv.tools_count })"></div>
                       <div class="mt-2" x-show="srv.tools && srv.tools.length">
-                        <div class="text-xs text-dim mb-1">Tools:</div>
+                        <div class="text-xs text-dim mb-1" x-text="t('skills_mcp_tools_label')"></div>
                         <template x-for="tool in srv.tools.slice(0, 10)" :key="tool.name">
                           <div class="text-xs" style="padding:2px 0">
                             <code x-text="tool.name" style="font-size:0.7rem"></code>
                             <span class="text-dim" x-show="tool.description" x-text="' — ' + tool.description" style="font-size:0.65rem"></span>
                           </div>
                         </template>
-                        <div class="text-xs text-dim" x-show="srv.tools.length > 10" x-text="'... and ' + (srv.tools.length - 10) + ' more'"></div>
+                        <div class="text-xs text-dim" x-show="srv.tools.length > 10" x-text="t('skills_mcp_more_tools', { count: srv.tools.length - 10 })"></div>
                       </div>
                     </div>
                   </template>
@@ -2291,7 +2356,7 @@
               </div>
               <!-- Configured but not connected -->
               <div x-show="mcpServers.total_configured > 0" class="mb-4">
-                <div class="text-sm font-bold mb-2" style="color:var(--text-dim);letter-spacing:0.5px">CONFIGURED SERVERS</div>
+                <div class="text-sm font-bold mb-2" style="color:var(--text-dim);letter-spacing:0.5px" x-text="t('skills_mcp_configured_servers')"></div>
                 <div class="card-grid">
                   <template x-for="srv in mcpServers.configured" :key="srv.name">
                     <div class="card card-unconfigured">
@@ -2305,15 +2370,15 @@
                       <div class="text-xs" x-show="srv.transport.type === 'sse'">
                         <code x-text="srv.transport.url" style="font-size:0.7rem"></code>
                       </div>
-                      <div class="text-xs text-dim mt-1" x-show="srv.env && srv.env.length" x-text="'Env: ' + srv.env.join(', ')"></div>
+                      <div class="text-xs text-dim mt-1" x-show="srv.env && srv.env.length" x-text="t('skills_mcp_env', { value: srv.env.join(', ') })"></div>
                     </div>
                   </template>
                 </div>
               </div>
               <!-- Empty state -->
               <div class="empty-state" x-show="mcpServers.total_configured === 0 && mcpServers.total_connected === 0">
-                <h4>No MCP servers configured</h4>
-                <p class="hint">MCP servers extend your agents with external tools. Add servers to your config.toml:</p>
+                <h4 x-text="t('skills_mcp_none')"></h4>
+                <p class="hint" x-text="t('skills_mcp_none_desc')"></p>
                 <pre style="text-align:left;font-size:0.75rem;margin-top:8px;background:var(--bg-secondary);padding:12px;border-radius:6px;max-width:400px;margin-left:auto;margin-right:auto">[[mcp_servers]]
 name = "filesystem"
 timeout_secs = 30
@@ -2322,7 +2387,7 @@ timeout_secs = 30
 type = "stdio"
 command = "npx"
 args = ["-y", "@modelcontextprotocol/server-filesystem", "/path"]</pre>
-                <p class="hint mt-2" style="font-size:0.75rem">OpenFang supports all OpenClaw-compatible MCP servers.</p>
+                <p class="hint mt-2" style="font-size:0.75rem" x-text="t('skills_mcp_support_note')"></p>
               </div>
             </div>
           </div>
@@ -2330,8 +2395,8 @@ args = ["-y", "@modelcontextprotocol/server-filesystem", "/path"]</pre>
           <!-- TAB: Quick Start (Create prompt-only skills) -->
           <div x-show="tab === 'create'">
             <div class="info-card">
-              <h4>Quick Start Skills</h4>
-              <p>Create prompt-only skills with one click. These inject context into your agent's system prompt &mdash; no code required. Perfect for adding domain expertise or workflow guidelines.</p>
+              <h4 x-text="t('skills_quick_start_title')"></h4>
+              <p x-text="t('skills_quick_start_desc')"></p>
             </div>
             <div class="card-grid">
               <template x-for="qs in quickStartSkills" :key="qs.name">
@@ -2342,7 +2407,7 @@ args = ["-y", "@modelcontextprotocol/server-filesystem", "/path"]</pre>
                   </div>
                   <div class="card-meta" x-text="qs.description"></div>
                   <div class="flex justify-end mt-2">
-                    <button class="btn btn-ghost btn-sm" @click="createDemoSkill(qs)" :disabled="isSkillInstalledByName(qs.name)" x-text="isSkillInstalledByName(qs.name) ? 'Created' : 'Create Skill'"></button>
+                    <button class="btn btn-ghost btn-sm" @click="createDemoSkill(qs)" :disabled="isSkillInstalledByName(qs.name)" x-text="isSkillInstalledByName(qs.name) ? t('skills_created') : t('skills_create_skill')"></button>
                   </div>
                 </div>
               </template>
@@ -2438,7 +2503,7 @@ args = ["-y", "@modelcontextprotocol/server-filesystem", "/path"]</pre>
                 Available <span class="badge badge-dim" x-show="hands.length" x-text="hands.length" style="margin-left:4px"></span>
               </div>
               <div class="tab" :class="{ active: tab === 'active' }" @click="tab = 'active'; loadActive()">
-                Active <span class="badge badge-success" x-show="instances.length" x-text="instances.length" style="margin-left:4px"></span>
+                <span x-text="t('hands_tab_active')"></span> <span class="badge badge-success" x-show="instances.length" x-text="instances.length" style="margin-left:4px"></span>
               </div>
             </div>
 
@@ -2538,9 +2603,9 @@ args = ["-y", "@modelcontextprotocol/server-filesystem", "/path"]</pre>
                 </template>
               </div>
               <div class="empty-state" x-show="!instances.length && !activeLoading">
-                <h4>No active hands</h4>
-                <p class="hint">Activate a hand from the Available tab to get started. Each hand spawns a dedicated agent.</p>
-                <button class="btn btn-primary mt-4" @click="tab = 'available'">Browse Hands</button>
+                <h4 x-text="t('hands_no_active')"></h4>
+                <p class="hint" x-text="t('hands_no_active_desc')"></p>
+                <button class="btn btn-primary mt-4" @click="tab = 'available'" x-text="t('hands_browse')"></button>
               </div>
             </div>
 
@@ -2956,11 +3021,11 @@ args = ["-y", "@modelcontextprotocol/server-filesystem", "/path"]</pre>
             <div class="tab" role="tab" :class="{ active: tab === 'config' }" @click="tab = 'config'; if (!configSchema) loadConfigSchema()">Config</div>
             <div class="tabs-separator"></div>
             <div class="tab tab-secondary" role="tab" :class="{ active: tab === 'tools' }" @click="tab = 'tools'">Tools</div>
-            <div class="tab tab-secondary" role="tab" :class="{ active: tab === 'security' }" @click="tab = 'security'; if (!securityData && !secLoading) loadSecurity()">Security</div>
-            <div class="tab tab-secondary" role="tab" :class="{ active: tab === 'network' }" @click="tab = 'network'; if (!peers.length && !peersLoading) { loadPeers(); startPeerPolling(); }">Network</div>
-            <div class="tab tab-secondary" role="tab" :class="{ active: tab === 'budget' }" @click="tab = 'budget'">Budget</div>
+            <div class="tab tab-secondary" role="tab" :class="{ active: tab === 'security' }" @click="tab = 'security'; if (!securityData && !secLoading) loadSecurity()" x-text="t('settings_tab_security')"></div>
+            <div class="tab tab-secondary" role="tab" :class="{ active: tab === 'network' }" @click="tab = 'network'; if (!peers.length && !peersLoading) { loadPeers(); startPeerPolling(); }" x-text="t('settings_tab_network')"></div>
+            <div class="tab tab-secondary" role="tab" :class="{ active: tab === 'budget' }" @click="tab = 'budget'" x-text="t('settings_tab_budget')"></div>
             <div class="tab tab-secondary" role="tab" :class="{ active: tab === 'info' }" @click="tab = 'info'">System</div>
-            <div class="tab tab-secondary" role="tab" :class="{ active: tab === 'migration' }" @click="tab = 'migration'">Migration</div>
+            <div class="tab tab-secondary" role="tab" :class="{ active: tab === 'migration' }" @click="tab = 'migration'" x-text="t('settings_tab_migration')"></div>
           </div>
 
           <!-- Providers tab -->
@@ -3204,9 +3269,9 @@ args = ["-y", "@modelcontextprotocol/server-filesystem", "/path"]</pre>
                             </template>
                             <button class="btn btn-primary btn-sm" x-show="isConfigDirty(section, field.name)"
                               @click="saveConfigField(section, field.name, configValues[section] && configValues[section][field.name])"
-                              :disabled="configSaving[section + '.' + field.name]">
-                              <span x-show="!configSaving[section + '.' + field.name]">Save</span>
-                              <span x-show="configSaving[section + '.' + field.name]" class="spinner" style="width:12px;height:12px;border-width:2px"></span>
+                              :disabled="configSaving[resolveConfigFieldKey(section, field.name)]">
+                              <span x-show="!configSaving[resolveConfigFieldKey(section, field.name)]" x-text="t('common_save')"></span>
+                              <span x-show="configSaving[resolveConfigFieldKey(section, field.name)]" class="spinner" style="width:12px;height:12px;border-width:2px"></span>
                             </button>
                           </div>
                           <div class="text-xs text-dim" x-show="field.description" x-text="field.description" style="grid-column:1/-1;padding-left:2px"></div>
@@ -3457,7 +3522,7 @@ args = ["-y", "@modelcontextprotocol/server-filesystem", "/path"]</pre>
                 await fetch('/api/budget', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
                 this.editMode = false;
                 await this.loadBudget();
-              } catch(e) { alert('Failed to save: ' + e); }
+              } catch(e) { OpenFangToast.error('Failed to save: ' + e); }
               this.saving = false;
             },
             pctColor(pct) { return pct >= 0.8 ? '#ef4444' : pct >= 0.5 ? '#eab308' : '#22c55e'; },
@@ -3645,9 +3710,9 @@ args = ["-y", "@modelcontextprotocol/server-filesystem", "/path"]</pre>
     <!-- Page: Analytics -->
     <template x-if="page === 'analytics'">
       <div x-data="analyticsPage">
-        <div class="page-header"><h2>Analytics</h2></div>
+        <div class="page-header"><h2 x-text="t('nav_analytics')"></h2></div>
         <div class="page-body" x-init="loadUsage()">
-          <div x-show="loading" class="loading-state"><div class="spinner"></div><span>Loading usage data...</span></div>
+          <div x-show="loading" class="loading-state"><div class="spinner"></div><span x-text="t('common_loading_usage') || 'Loading usage data...'"></span></div>
           <div x-show="!loading && loadError" class="error-state">
             <span class="error-icon">!</span>
             <p x-text="loadError"></p>
@@ -3721,21 +3786,21 @@ args = ["-y", "@modelcontextprotocol/server-filesystem", "/path"]</pre>
 
             <!-- Cost Summary Cards -->
             <div class="stats-row mt-4">
-              <div class="stat-card">
+            <div class="stat-card">
                 <div class="stat-value" x-text="formatCost(summary.total_cost_usd)"></div>
-                <div class="stat-label">Total Spend</div>
+                <div class="stat-label" x-text="t('analytics_total_spend')"></div>
               </div>
               <div class="stat-card">
                 <div class="stat-value" x-text="formatCost(todayCost)"></div>
-                <div class="stat-label">Today's Spend</div>
+                <div class="stat-label" x-text="t('analytics_today_spend')"></div>
               </div>
               <div class="stat-card">
                 <div class="stat-value" x-text="formatCost(projectedMonthlyCost())"></div>
-                <div class="stat-label">Projected Monthly</div>
+                <div class="stat-label" x-text="t('analytics_projected_monthly')"></div>
               </div>
               <div class="stat-card">
                 <div class="stat-value" x-text="formatCost(avgCostPerMessage())"></div>
-                <div class="stat-label">Avg Cost / Message</div>
+                <div class="stat-label" x-text="t('analytics_avg_cost_per_message')"></div>
               </div>
             </div>
 
@@ -3744,8 +3809,8 @@ args = ["-y", "@modelcontextprotocol/server-filesystem", "/path"]</pre>
 
               <!-- Donut Chart: Cost by Provider -->
               <div class="card cost-chart-panel">
-                <div class="card-header">Cost by Provider</div>
-                <div x-show="costByProvider().length === 0" class="text-sm text-dim" style="padding:20px;text-align:center">No cost data yet.</div>
+                <div class="card-header" x-text="t('analytics_cost_by_provider')"></div>
+                <div x-show="costByProvider().length === 0" class="text-sm text-dim" style="padding:20px;text-align:center" x-text="t('analytics_no_cost_data')"></div>
                 <div x-show="costByProvider().length > 0" class="donut-chart-wrap">
                   <div class="donut-chart">
                     <svg viewBox="0 0 160 160" width="160" height="160">
@@ -3765,7 +3830,7 @@ args = ["-y", "@modelcontextprotocol/server-filesystem", "/path"]</pre>
                       </template>
                       <!-- Center text -->
                       <text x="80" y="76" text-anchor="middle" fill="var(--text)" style="font-size:14px;font-weight:700;font-family:var(--font-mono)" x-text="formatCost(summary.total_cost_usd)"></text>
-                      <text x="80" y="92" text-anchor="middle" fill="var(--text-muted)" style="font-size:9px;font-family:var(--font-mono)">TOTAL</text>
+                      <text x="80" y="92" text-anchor="middle" fill="var(--text-muted)" style="font-size:9px;font-family:var(--font-mono)" x-text="t('analytics_total_short')"></text>
                     </svg>
                   </div>
                   <div class="donut-legend">
@@ -3783,8 +3848,8 @@ args = ["-y", "@modelcontextprotocol/server-filesystem", "/path"]</pre>
 
               <!-- Bar Chart: Daily Cost (last 7 days) -->
               <div class="card cost-chart-panel">
-                <div class="card-header">Daily Cost (Last 7 Days)</div>
-                <div x-show="barChartData().length === 0" class="text-sm text-dim" style="padding:20px;text-align:center">No daily data yet.</div>
+                <div class="card-header" x-text="t('analytics_daily_cost_last_7_days')"></div>
+                <div x-show="barChartData().length === 0" class="text-sm text-dim" style="padding:20px;text-align:center" x-text="t('analytics_no_daily_data')"></div>
                 <div x-show="barChartData().length > 0" class="bar-chart">
                   <svg :viewBox="'0 0 ' + (barChartData().length * 50 + 20) + ' 180'" :width="barChartData().length * 50 + 20" height="180">
                     <!-- Baseline -->
@@ -3831,7 +3896,7 @@ args = ["-y", "@modelcontextprotocol/server-filesystem", "/path"]</pre>
 
             <!-- Cost by Model Table -->
             <div class="card mt-4">
-              <div class="card-header">Cost by Model</div>
+              <div class="card-header" x-text="t('analytics_cost_by_model')"></div>
               <div class="table-wrap" x-show="costByModelSorted().length" style="border:none;margin-top:8px">
                 <table>
                   <thead>
@@ -3870,7 +3935,7 @@ args = ["-y", "@modelcontextprotocol/server-filesystem", "/path"]</pre>
                   </tbody>
                 </table>
               </div>
-              <div x-show="!costByModelSorted().length" class="text-sm text-dim" style="padding:20px;text-align:center">No model cost data yet.</div>
+              <div x-show="!costByModelSorted().length" class="text-sm text-dim" style="padding:20px;text-align:center" x-text="t('analytics_no_model_cost_data')"></div>
             </div>
 
           </div>
@@ -3888,7 +3953,7 @@ args = ["-y", "@modelcontextprotocol/server-filesystem", "/path"]</pre>
         </div>
         <div class="tabs">
           <div class="tab" :class="{ active: tab === 'sessions' }" @click="tab = 'sessions'">Sessions</div>
-          <div class="tab" :class="{ active: tab === 'memory' }" @click="tab = 'memory'">Memory</div>
+          <div class="tab" :class="{ active: tab === 'memory' }" @click="tab = 'memory'" x-text="t('sessions_tab_memory')"></div>
         </div>
         <div class="page-body" x-init="loadSessions()">
           <!-- Sessions tab -->
@@ -3945,13 +4010,13 @@ args = ["-y", "@modelcontextprotocol/server-filesystem", "/path"]</pre>
                 <p>Each agent has its own key-value memory store. Agents use memory to persist preferences, notes, and context between conversations.</p>
               </div>
               <select class="form-select" style="width:200px;margin-left:16px" x-model="memAgentId" @change="loadKv()">
-                <option value="">Select agent...</option>
+                <option value="" x-text="t('sessions_memory_select_agent')"></option>
                 <template x-for="a in $store.app.agents" :key="a.id">
                   <option :value="a.id" x-text="a.name"></option>
                 </template>
               </select>
             </div>
-            <div x-show="memLoading" class="loading-state"><div class="spinner"></div><span>Loading memory...</span></div>
+            <div x-show="memLoading" class="loading-state"><div class="spinner"></div><span x-text="t('sessions_memory_loading')"></span></div>
             <div x-show="!memLoading && memLoadError" class="error-state">
               <span class="error-icon">!</span>
               <p x-text="memLoadError"></p>
@@ -4011,8 +4076,8 @@ args = ["-y", "@modelcontextprotocol/server-filesystem", "/path"]</pre>
               </template>
             </div>
             <div class="empty-state" x-show="!memAgentId && !memLoading">
-              <h4>Select an Agent</h4>
-              <p class="hint">Choose an agent from the dropdown above to browse and edit its memory store.</p>
+              <h4 x-text="t('sessions_memory_select_agent_title')"></h4>
+              <p class="hint" x-text="t('sessions_memory_select_agent_desc')"></p>
             </div>
           </div>
         </div>
@@ -4089,14 +4154,14 @@ args = ["-y", "@modelcontextprotocol/server-filesystem", "/path"]</pre>
             </div>
             <div x-show="!auditLoading && !auditLoadError">
             <div class="card mb-4" style="border-left:3px solid var(--accent)">
-              <div class="font-bold" style="font-size:13px;margin-bottom:4px">Tamper-Evident Audit Trail</div>
+              <div class="font-bold" style="font-size:13px;margin-bottom:4px" x-text="t('logs_tamper_evident_audit_trail')"></div>
               <div class="text-sm text-dim" style="line-height:1.6">
-                Every agent action is logged with a cryptographic hash chain. Use "Verify Chain" to confirm no entries have been altered or deleted.
+                <span x-text="t('logs_audit_desc')"></span>
               </div>
             </div>
             <div class="flex gap-2 mb-4 items-center">
               <select class="form-select" style="width:180px" x-model="filterAction">
-                <option value="">All Actions</option>
+                <option value="" x-text="t('logs_all_actions')"></option>
                 <option value="AgentSpawn">Agent Created</option>
                 <option value="AgentKill">Agent Stopped</option>
                 <option value="AgentMessage">Message</option>
@@ -4107,12 +4172,12 @@ args = ["-y", "@modelcontextprotocol/server-filesystem", "/path"]</pre>
                 <option value="MemoryAccess">Memory Access</option>
                 <option value="AuthAttempt">Login Attempt</option>
               </select>
-              <span class="text-sm text-dim" x-text="filteredAuditEntries.length + ' of ' + auditEntries.length + ' entries'"></span>
-              <span class="text-xs text-dim" x-show="tipHash" x-text="'tip: ' + tipHash.substring(0, 16) + '...'"></span>
+              <span class="text-sm text-dim" x-text="t('logs_entries_count', { filtered: filteredAuditEntries.length, total: auditEntries.length })"></span>
+              <span class="text-xs text-dim" x-show="tipHash" x-text="t('logs_tip_hash', { hash: tipHash.substring(0, 16) })"></span>
             </div>
             <div class="table-wrap" x-show="filteredAuditEntries.length">
               <table>
-                <thead><tr><th>#</th><th>Timestamp</th><th>Agent</th><th>Action</th><th>Detail</th><th>Outcome</th></tr></thead>
+                <thead><tr><th>#</th><th x-text="t('logs_timestamp')"></th><th x-text="t('common_agent')"></th><th x-text="t('logs_action')"></th><th x-text="t('logs_detail')"></th><th x-text="t('logs_outcome')"></th></tr></thead>
                 <tbody>
                   <template x-for="e in filteredAuditEntries" :key="e.seq">
                     <tr>
@@ -4241,7 +4306,7 @@ args = ["-y", "@modelcontextprotocol/server-filesystem", "/path"]</pre>
                 <div>
                   <label class="text-xs text-dim" style="display:block;margin-bottom:4px">From Agent</label>
                   <select x-model="sendFrom" class="input" style="width:100%">
-                    <option value="">Select agent...</option>
+                    <option value="" x-text="t('sessions_memory_select_agent')"></option>
                     <template x-for="n in topology.nodes" :key="n.id">
                       <option :value="n.id" x-text="n.name + ' (' + n.state + ')'"></option>
                     </template>
@@ -4250,7 +4315,7 @@ args = ["-y", "@modelcontextprotocol/server-filesystem", "/path"]</pre>
                 <div>
                   <label class="text-xs text-dim" style="display:block;margin-bottom:4px">To Agent</label>
                   <select x-model="sendTo" class="input" style="width:100%">
-                    <option value="">Select agent...</option>
+                    <option value="" x-text="t('sessions_memory_select_agent')"></option>
                     <template x-for="n in topology.nodes" :key="n.id">
                       <option :value="n.id" x-text="n.name + ' (' + n.state + ')'"></option>
                     </template>
