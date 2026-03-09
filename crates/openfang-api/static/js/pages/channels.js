@@ -33,6 +33,21 @@ function channelsPage() {
       error: ''
     },
     qrPollTimer: null,
+    shortCode: {
+      loading: false,
+      available: false,
+      deviceId: '',
+      code: '',
+      expiresIn: null,
+      expiresAt: null,
+      qrImageUrl: '',
+      isBound: false,
+      online: false,
+      binding: null,
+      message: '',
+      error: ''
+    },
+    shortCodePollTimer: null,
 
     categories: [
       { key: 'all', label: 'All' },
@@ -83,6 +98,10 @@ function channelsPage() {
 
     isQrChannel() {
       return this.setupModal && this.setupModal.setup_type === 'qr';
+    },
+
+    isShortCodeChannel() {
+      return this.setupModal && this.setupModal.setup_type === 'short_code';
     },
 
     async loadChannels() {
@@ -156,9 +175,12 @@ function channelsPage() {
       this.setupStep = ch.configured ? 3 : 1;
       this.testPassed = !!ch.configured;
       this.resetQR();
+      this.resetShortCode();
       // Auto-start QR flow for QR-type channels
       if (ch.setup_type === 'qr') {
         this.startQR();
+      } else if (ch.setup_type === 'short_code') {
+        this.startShortCode();
       }
     },
 
@@ -221,6 +243,101 @@ function channelsPage() {
           }
         } catch(e) { /* silent retry */ }
       }, 3000);
+    },
+
+    // ── Short Code Flow (WeChat customer service) ─────────────────
+
+    resetShortCode() {
+      this.shortCode = {
+        loading: false,
+        available: false,
+        deviceId: '',
+        code: '',
+        expiresIn: null,
+        expiresAt: null,
+        qrImageUrl: '',
+        isBound: false,
+        online: false,
+        binding: null,
+        message: '',
+        error: ''
+      };
+      if (this.shortCodePollTimer) {
+        clearInterval(this.shortCodePollTimer);
+        this.shortCodePollTimer = null;
+      }
+    },
+
+    applyShortCodeStatus(result) {
+      this.shortCode.available = result.available !== false;
+      this.shortCode.deviceId = result.device_id || this.shortCode.deviceId || '';
+      this.shortCode.code = result.short_code || '';
+      this.shortCode.expiresIn = result.expires_in_seconds;
+      this.shortCode.expiresAt = result.expires_at;
+      this.shortCode.qrImageUrl = result.qr_image_url || '';
+      this.shortCode.isBound = !!result.is_bound;
+      this.shortCode.online = !!result.online;
+      this.shortCode.binding = result.binding || null;
+      if (this.shortCode.isBound) {
+        this.shortCode.message = '绑定成功，后续消息将路由到你的设备。';
+      } else if (this.shortCode.code) {
+        this.shortCode.message = '请在微信客服会话发送该短码完成绑定。';
+      } else {
+        this.shortCode.message = result.message || '';
+      }
+    },
+
+    async startShortCode() {
+      this.shortCode.loading = true;
+      this.shortCode.error = '';
+      try {
+        var result = await OpenFangAPI.post('/api/channels/wechat/shortcode/start', {});
+        this.applyShortCodeStatus(result || {});
+        if (this.shortCode.isBound) {
+          OpenFangToast.success('微信渠道已绑定');
+          await this.refreshStatus();
+        } else {
+          this.pollShortCode();
+        }
+      } catch (e) {
+        this.shortCode.available = false;
+        this.shortCode.error = e.message || 'Could not start short-code binding';
+      }
+      this.shortCode.loading = false;
+    },
+
+    pollShortCode() {
+      var self = this;
+      if (this.shortCodePollTimer) clearInterval(this.shortCodePollTimer);
+      this.shortCodePollTimer = setInterval(async function() {
+        try {
+          var deviceId = self.shortCode.deviceId || '';
+          if (!deviceId) return;
+          var result = await OpenFangAPI.get('/api/channels/wechat/shortcode/status?device_id=' + encodeURIComponent(deviceId));
+          self.applyShortCodeStatus(result || {});
+          if (self.shortCode.isBound) {
+            clearInterval(self.shortCodePollTimer);
+            self.shortCodePollTimer = null;
+            OpenFangToast.success('微信绑定成功');
+            await self.refreshStatus();
+          }
+        } catch (e) {
+          self.shortCode.error = e.message || 'Status polling failed';
+        }
+      }, 3000);
+    },
+
+    async unbindShortCode() {
+      if (!this.setupModal) return;
+      try {
+        var result = await OpenFangAPI.post('/api/channels/wechat/unbind', {});
+        this.applyShortCodeStatus(result || {});
+        this.shortCode.isBound = false;
+        OpenFangToast.success('已解除微信绑定');
+        await this.refreshStatus();
+      } catch (e) {
+        OpenFangToast.error(e.message || 'Unbind failed');
+      }
     },
 
     // ── Standard Form Flow ─────────────────────────────────────────
@@ -304,6 +421,7 @@ function channelsPage() {
     destroy() {
       if (this.pollTimer) { clearInterval(this.pollTimer); this.pollTimer = null; }
       if (this.qrPollTimer) { clearInterval(this.qrPollTimer); this.qrPollTimer = null; }
+      if (this.shortCodePollTimer) { clearInterval(this.shortCodePollTimer); this.shortCodePollTimer = null; }
     }
   };
 }

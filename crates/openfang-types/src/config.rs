@@ -1446,6 +1446,8 @@ pub struct ChannelsConfig {
     pub slack: Option<SlackConfig>,
     /// WhatsApp Cloud API configuration (None = disabled).
     pub whatsapp: Option<WhatsAppConfig>,
+    /// WeChat customer service short-code binding configuration (None = disabled).
+    pub wechat: Option<WechatConfig>,
     /// Signal (via signal-cli) configuration (None = disabled).
     pub signal: Option<SignalConfig>,
     /// Matrix protocol configuration (None = disabled).
@@ -1648,6 +1650,35 @@ impl Default for WhatsAppConfig {
             webhook_port: 8443,
             gateway_url_env: "WHATSAPP_WEB_GATEWAY_URL".to_string(),
             allowed_users: vec![],
+            default_agent: None,
+            overrides: ChannelOverrides::default(),
+        }
+    }
+}
+
+/// WeChat customer service short-code binding configuration.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]
+pub struct WechatConfig {
+    /// Base URL of the lingshi-server device binding service.
+    pub server_base_url: String,
+    /// Stable device identifier used for short-code registration.
+    pub device_id: String,
+    /// Poll interval for binding status checks.
+    pub status_poll_interval_secs: u64,
+    /// Default agent name to route messages to (reserved).
+    pub default_agent: Option<String>,
+    /// Per-channel behavior overrides.
+    #[serde(default)]
+    pub overrides: ChannelOverrides,
+}
+
+impl Default for WechatConfig {
+    fn default() -> Self {
+        Self {
+            server_base_url: "http://8.148.182.238:8080".to_string(),
+            device_id: String::new(),
+            status_poll_interval_secs: 3,
             default_agent: None,
             overrides: ChannelOverrides::default(),
         }
@@ -3321,6 +3352,14 @@ mod tests {
     }
 
     #[test]
+    fn test_wechat_config_defaults() {
+        let wc = WechatConfig::default();
+        assert_eq!(wc.server_base_url, "http://8.148.182.238:8080");
+        assert!(wc.device_id.is_empty());
+        assert_eq!(wc.status_poll_interval_secs, 3);
+    }
+
+    #[test]
     fn test_signal_config_defaults() {
         let sig = SignalConfig::default();
         assert_eq!(sig.api_url, "http://localhost:8080");
@@ -3356,6 +3395,17 @@ mod tests {
     }
 
     #[test]
+    fn test_wechat_config_serde() {
+        let wc = WechatConfig {
+            device_id: "device-001".to_string(),
+            ..Default::default()
+        };
+        let json = serde_json::to_string(&wc).unwrap();
+        let back: WechatConfig = serde_json::from_str(&json).unwrap();
+        assert_eq!(back.device_id, "device-001");
+    }
+
+    #[test]
     fn test_matrix_config_serde() {
         let mx = MatrixConfig {
             user_id: "@bot:matrix.org".to_string(),
@@ -3371,6 +3421,7 @@ mod tests {
         let config = KernelConfig {
             channels: ChannelsConfig {
                 whatsapp: Some(WhatsAppConfig::default()),
+                wechat: Some(WechatConfig::default()),
                 signal: Some(SignalConfig::default()),
                 matrix: Some(MatrixConfig::default()),
                 email: Some(EmailConfig::default()),
@@ -3379,6 +3430,7 @@ mod tests {
             ..Default::default()
         };
         assert!(config.channels.whatsapp.is_some());
+        assert!(config.channels.wechat.is_some());
         assert!(config.channels.signal.is_some());
         assert!(config.channels.matrix.is_some());
         assert!(config.channels.email.is_some());
