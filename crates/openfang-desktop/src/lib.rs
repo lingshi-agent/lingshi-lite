@@ -182,8 +182,8 @@ pub fn run() {
                 }
             });
 
-            // Spawn startup update check (desktop only, after event forwarding is set up)
-            #[cfg(desktop)]
+            // Skip noisy remote update checks in local dev builds.
+            #[cfg(all(desktop, not(debug_assertions)))]
             updater::spawn_startup_check(app.handle().clone());
 
             info!("OpenFang Desktop window created");

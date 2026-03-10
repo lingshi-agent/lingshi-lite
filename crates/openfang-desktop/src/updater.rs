@@ -1,9 +1,12 @@
 //! Update checker for the OpenFang desktop app.
 
 use serde::Serialize;
+#[cfg(not(debug_assertions))]
 use tauri_plugin_notification::NotificationExt;
 use tauri_plugin_updater::UpdaterExt;
-use tracing::{info, warn};
+#[cfg(not(debug_assertions))]
+use tracing::warn;
+use tracing::info;
 
 /// Structured result from an update check.
 #[derive(Debug, Clone, Serialize)]
@@ -18,8 +21,10 @@ pub struct UpdateInfo {
 
 /// Spawn a background task that checks for updates after a 10-second delay.
 ///
+/// Only used in release builds; local `cargo tauri dev` skips this path.
 /// If an update is found, installs it silently and restarts the app.
 /// All errors are logged but never panic.
+#[cfg(not(debug_assertions))]
 pub fn spawn_startup_check(app_handle: tauri::AppHandle) {
     tauri::async_runtime::spawn(async move {
         tokio::time::sleep(std::time::Duration::from_secs(10)).await;
