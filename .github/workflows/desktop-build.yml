@@ -20,14 +20,20 @@ jobs:
           - name: Linux x86_64
             os: ubuntu-22.04
             args: --target x86_64-unknown-linux-gnu
+            rust_target: x86_64-unknown-linux-gnu
+            artifact_name: openfang-linux-x86_64
 
           - name: macOS ARM64
             os: macos-latest
             args: --target aarch64-apple-darwin
+            rust_target: aarch64-apple-darwin
+            artifact_name: openfang-macos-arm64
 
           - name: Windows x86_64
             os: windows-latest
             args: --target x86_64-pc-windows-msvc
+            rust_target: x86_64-pc-windows-msvc
+            artifact_name: openfang-windows-x86_64
 
     steps:
       - name: Checkout
@@ -59,5 +65,10 @@ jobs:
         with:
           projectPath: crates/openfang-desktop
           args: ${{ matrix.platform.args }}
-          uploadWorkflowArtifacts: true
-          workflowArtifactNamePattern: openfang-[platform]-[arch]-[bundle]
+
+      - name: Upload desktop bundles
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.platform.artifact_name }}
+          path: target/${{ matrix.platform.rust_target }}/release/bundle/**
+          if-no-files-found: error
